@@ -1,0 +1,37 @@
+# === Dart / Flutter ===
+.dart_tool/
+.packages
+.pub-cache/
+build/
+
+# Flutter generated files
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# === Platform directories (should NOT exist in package root or example) ===
+android/
+ios/
+windows/
+linux/
+macos/
+web/
+
+# === IDE / Editor ===
+.vscode/
+.idea/
+*.iml
+*.code-workspace
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Tooling ===
+.claude/
+
+# === Lock files ===
+# Package root should NOT commit pubspec.lock
+pubspec.lock
+
+# Example SHOULD commit its pubspec.lock
+!example/pubspec.lock
