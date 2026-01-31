@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/painters/element_geomatry.dart';
+import 'package:freeform_canvas/painters/element_geometry.dart';
 import 'package:freeform_canvas/painters/static_layer_painter.dart';
 
 import '../models/freeform_canvas_element.dart';
@@ -59,23 +59,23 @@ void _drawSelectionBox(Canvas canvas, FreeformCanvasElement? selectionRectElemen
   final selectionPaint = Paint()
     ..color =  const Color.fromRGBO(158, 158, 158, 1) // 灰色
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1
+    ..strokeWidth = 2/scale
     ..strokeCap = StrokeCap.square
     ..strokeJoin = StrokeJoin.miter;
 
-  final center = ElementGeomatry.center(selectionRectElement);
+  final center = ElementGeometry.center(selectionRectElement);
   canvas.translate(center.dx, center.dy);
   canvas.rotate(selectionRectElement.angle);
   canvas.translate(-center.dx, -center.dy);
   // Draw the selection box
-  canvas.drawRect(ElementGeomatry.selectionRect(selectionRectElement), selectionPaint);
+  canvas.drawRect(ElementGeometry.selectionRect(selectionRectElement), selectionPaint);
 
   // Draw the resize handles
-  final handleRect = ElementGeomatry.resizeHandlePosition(selectionRectElement);
-  drawSelectionHandle(canvas, handleRect.topLeft);
-  drawSelectionHandle(canvas, handleRect.topRight);
-  drawSelectionHandle(canvas, handleRect.bottomLeft);
-  drawSelectionHandle(canvas, handleRect.bottomRight);
+  final handleRect = ElementGeometry.resizeHandlePosition(selectionRectElement);
+  drawSelectionHandle(canvas, handleRect.topLeft,scale);
+  drawSelectionHandle(canvas, handleRect.topRight,scale);
+  drawSelectionHandle(canvas, handleRect.bottomLeft,scale);
+  drawSelectionHandle(canvas, handleRect.bottomRight,scale);
 
   canvas.rotate(-selectionRectElement.angle);
 }
@@ -83,13 +83,13 @@ void _drawSelectionBox(Canvas canvas, FreeformCanvasElement? selectionRectElemen
 /// **ZH** 绘制控制点
 /// 
 /// **EN** Draw the control point
-void drawSelectionHandle(Canvas canvas,Offset offset){
+void drawSelectionHandle(Canvas canvas,Offset offset,double scale){
   canvas.drawRRect(
-    RRect.fromRectAndRadius(ElementGeomatry.resizeHandleRect(offset), Radius.circular(1)), 
+    RRect.fromRectAndRadius(ElementGeometry.resizeHandleRect(offset,scale), Radius.circular(1/scale)), 
     Paint()
     ..color = Colors.grey
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1,
+    ..strokeWidth = 2/scale,
   );
 }
 

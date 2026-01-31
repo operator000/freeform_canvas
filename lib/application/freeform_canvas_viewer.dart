@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/canvas_renderer.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
-import 'package:freeform_canvas/application/mouse_keyboard_interactor.dart';
+import 'package:freeform_canvas/application/renderers/canvas_renderer.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
+import 'package:freeform_canvas/application/interactors/mouse_keyboard_interactor.dart';
 import 'package:freeform_canvas/inspector/inspector.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
-import 'freeform_canvas_parser.dart';
-import 'core/editor_state.dart';
+import '../freeform_canvas_parser.dart';
+import '../core/editor_state.dart';
 
 
 /// **ZH** FreeformCanvas 查看器组件

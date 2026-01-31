@@ -2,13 +2,13 @@ import 'dart:ui';
 
 import 'package:freeform_canvas/core/edit_intent_and_session/edit_sessions.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
-import 'package:freeform_canvas/interaction_handlers/element_edit/element_edit_controller.dart';
+import 'package:freeform_canvas/interaction_handlers/secondary_handlers/element_edit_secondary_handler.dart';
 
 ///按到元素本身：处理平移交互
-class DragEditController extends ElementEditController{
+class DragEditSecondaryHandler extends InteractionSecondaryHandler{
   final String elementId;
   late ElementDragSession elementDragSession;
-  DragEditController(this.elementId);
+  DragEditSecondaryHandler(this.elementId);
   @override
   void onPanStart(Offset canvasPoint, EditorState editorState) {
     elementDragSession = ElementDragSession(editorState: editorState, elementId: elementId);
@@ -28,7 +28,7 @@ class DragEditController extends ElementEditController{
 }
 
 ///按到空白：清空focus
-class ClearFocusController extends ElementEditController{
+class ClearFocusSecondaryHandler extends InteractionSecondaryHandler{
   @override
   void onPanStart(_,EditorState editorState) {
     editorState.focusState.cancelFocus();

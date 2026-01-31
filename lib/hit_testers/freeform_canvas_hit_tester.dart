@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'models/freeform_canvas_element.dart';
+import '../models/freeform_canvas_element.dart';
 
 /// **ZH** 命中测试结果
 /// 

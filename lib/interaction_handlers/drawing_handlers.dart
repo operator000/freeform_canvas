@@ -1,7 +1,5 @@
 ///所有新建元素的工具在此：两点新建，freedraw，文本.
 library;
-
-import 'package:flutter/material.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/edit_sessions.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
@@ -59,17 +57,9 @@ class FreeDrawHandler implements InteractionHandler{
 ///**ZH** 文本编辑工具
 ///
 ///**EN** Text editing tool
-class TextCreateHandler extends InteractionHandler{
-
+class TextEditHandler extends InteractionHandler{
   @override
-  void onScaleStart(InputStartEvent event, EditorState editorState) {
-    final canvasPoint = screenToCanvas(editorState.scale, editorState.pan, event.localPoint);
-
-    // 如果已有正在编辑的文本，先提交
-    editorState.quitTextEdit();
-
-    // 创建新的文本编辑状态
-    editorState.enterTextEdit(TextEditingController(),canvasPoint);
-    editorState.switchToolToDefault();
+  void onScaleStart(InputStartEvent event,EditorState editorState) {
+    TextEditSession().onTrigger(screenToCanvas(editorState.scale, editorState.pan, event.localPoint), editorState);
   }
 }

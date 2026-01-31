@@ -35,3 +35,7 @@ pubspec.lock
 
 # Example SHOULD commit its pubspec.lock
 !example/pubspec.lock
+
+example/lib
+!example/lib/main.dart
+!example/lib/embedded_file.dart

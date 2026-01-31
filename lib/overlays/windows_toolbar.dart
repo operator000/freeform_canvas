@@ -4,7 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 class WindowsToolbar extends Overlays{
   const WindowsToolbar();

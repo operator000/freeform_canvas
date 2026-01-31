@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/e_ink_screen_renderer.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
-import 'package:freeform_canvas/application/stylus_aware_interactor.dart';
-import 'package:freeform_canvas/freeform_canvas_viewer.dart';
+import 'package:freeform_canvas/application/renderers/e_ink_screen_renderer.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
+import 'package:freeform_canvas/application/interactors/stylus_aware_interactor.dart';
+import 'package:freeform_canvas/application/freeform_canvas_viewer.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import 'package:freeform_canvas/overlays/e_ink_toolbar.dart';
 ///**ZH** 适配墨水屏的画布编辑器组件，在 Bigme S6 上验证无误。
@@ -31,10 +31,17 @@ class _EInkFreeformCanvasState extends State<EInkFreeformCanvas> {
   final renderer = EInkScreenRenderer();
   final interactor = StylusAwareInteractor();
   final toolbar = EInkToolbar();
+  late FreeformCanvasFile? file;
+  @override
+  void initState() {
+    super.initState();
+    file = widget.file;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FreeformCanvasViewer(
-      file: widget.file,
+      file: file,
       jsonString: widget.jsonString,
       renderer: renderer,
       interactor: interactor,

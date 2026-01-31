@@ -114,21 +114,16 @@ static FreeformCanvasElement? createDraftElementFromPoints(
   Offset startPoint,
   Offset endPoint,
 );
-/// **ZH** 对矩形、椭圆、自由绘制、文本元素进行几何缩放
+/// **ZH** 对元素进行缩放操作（基于控制点位移的算法）
+/// - 被拖动点根据 handleOffset 移动
 ///
-/// 输入两个矩形 [fromRect] 和 [toRect]，其中toRect为fromRect经过某线性变换后的结果。
-/// 函数对输入的元素进行完全一致的线性变换，返回新的元素实例。例外：文本元素等比缩放
-/// 
-/// **EN** Scale rectangle, ellipse, free drawing and text elements by a linear transformation.
-/// 
-/// Given two rectangles [fromRect] and [toRect], where [toRect] is the result of a linear transformation of [fromRect].
-/// The function applies a linear transformation to the input element completely, and returns a new element instance. 
-/// Exception: Text elements are scaled proportionally
-static FreeformCanvasElement rectScaleElement(
-  FreeformCanvasElement element,
-  Rect fromRect,
-  Rect toRect,
-);
+/// **EN** Scale element based on control point displacement
+/// Scale element based on dragged handle and offset
+static FreeformCanvasElement handleScaleElement(
+  FreeformCanvasElement initialElement,
+  ResizeHandle handle,
+  Offset handleOffset,
+)
 /// **ZH** 对箭头、直线元素进行起点或终点的坐标偏移
 ///
 /// - pointIndex 为整型值，0代表变换起点
@@ -154,6 +149,23 @@ static FreeformCanvasFreedraw addPointToFreeDrawDraft(
 );
 /// 对元素应用ElementStylePatch。后者定义见章节`# ElementStyle：一个小功能，元素风格默认风格和风格修改`
 static FreeformCanvasElement applyStylePatch(ElementStylePatch patch, FreeformCanvasElement element);
+/// **ZH** 修改与元素文本相关的字段，同时会重新计算宽高。
+/// 
+/// **EN** Modify the fields related to the element's text and recalculate the width and height.
+static FreeformCanvasText textElementModify(FreeformCanvasText element,{
+  // Object? width = _unset,
+  // Object? height = _unset,
+
+  Object? text = _unset,
+  // Object? originalText = _unset,
+  Object? fontSize = _unset,
+  Object? fontFamily = _unset,
+  Object? textAlign = _unset,
+  Object? verticalAlign = _unset,
+  Object? lineHeight = _unset,
+  // Object? autoResize = _unset,
+  // Object? containerId = _unset,
+});
 ```
 ## `FreeformCanvasFileOps`：文件操作类
 文件`freeform_canvas_file_ops.dart`
@@ -222,6 +234,10 @@ class FreeformCanvasFileOps {
     FreeformCanvasFile file,
     String elementId,
   );
+  ///**ZH** 创建一个空文件
+  ///
+  ///**EN** Create an empty file
+  static FreeformCanvasFile emptyFile();
 }
 ```
 
@@ -525,6 +541,44 @@ final String? startArrowhead;
 final String? endArrowhead;
 ```
 
+# 文本编辑相对于其它元素编辑的特殊性
+文本编辑的交互方式和其它元素不同。其它元素以手势的抬起为结束，并且和拖动、缩放等操作互斥，和后续手势之间相互独立。文本元素编辑的退出是单击其它位置、按ESC键等，并且中间允许缩放平移行为。
+
+为其它元素相关操作设计的单次编辑操作流程由`EditSession`子类管理，它对接UI层`InteractionHandler`子类（有onStart、onUpdate、onEnd回调），一次交互一个 Handler 是基本设计，文本编辑不适合该流程。
+在 freeform canvas 中，文本编辑被视为一种 editor-level 的编辑模式，`EditorState.textEditorState.enterTextEdit`和`EditorState.textEditorState.quitTextEdit`作为接口触发编辑操作，`TextEditData`用于存储编辑时数据，包括临时元素、TextController等，`TextEditWidget`为渲染文本框、处理输入的组件。
+
+下面给出`TextEditData`类签名，编辑操作见其余章节。
+
+##  `TextEditData`类签名
+文件`lib\models\text_editing_data.dart`
+```dart
+///**ZH** 文本编辑数据
+///
+///**EN** Text editing data
+class TextEditData{
+  final TextEditingController textController;
+  final FreeformCanvasText behalfElement;
+  ///isVirtual==true: The element is not in the file
+  final bool isVirtual;
+
+  TextEditData({
+    required this.textController,
+    required this.behalfElement,
+    required this.isVirtual,
+  });
+  /// Used when creating new text elements.
+  void dispose();
+  factory TextEditData.newText({
+    required Offset textCanvasPosition,
+    required Color? textColor,
+    double fontSize = 36,
+    double lineHeight = 1.25,
+  });
+  /// Used when modifing a specific element in the file.
+  factory TextEditData.fromElement({required FreeformCanvasText element});
+}
+```
+
 # `EditorState`：编辑器操作集合
 ## `EditorState`内的成员函数和变量
 ### 文件管理相关
@@ -604,11 +658,13 @@ void quitPreview();
   set scale(double v) => transformState.scale = v;
 
   // 文本编辑控制
-  // Text editor control
-  TextEditor? _textEditor;
-  TextEditor? get textEditor => _textEditor;
-  void enterTextEdit(TextEditor textEditor);
-  void commitAndQuitTextEdit();
+  // Text edit control
+  final textEditorState = TextEditorState();
+  void enterTextEdit(TextEditData data);
+  ///**ZH** 退出文本编辑并视情况保存元素
+  ///
+  ///**EN** Exit text editing and save the element as needed
+  void quitTextEdit() => textEditorState.quitTextEdit(this);
 ```
 ## `xxxState`：状态通知类
 - `TransformState`
@@ -722,20 +778,47 @@ class ActionState{
 
 - `TextEditorState`
 ```dart
-/// 管理与通知文本编辑数据
+///**ZH** 管理与通知缩放平移信息
+///
+///**EN** Manage and notify zoom and pan information
+class TransformState extends ChangeNotifier{
+  int count = 0;
+  //画布变换状态，定义：
+  //screen = (canvas + pan)*scale
+  //canvas = screen/scale - pan
+  Offset _pan = Offset.zero;
+  Offset get pan => _pan;
+  set pan(Offset v){
+    if(_pan!=v){
+      _pan=v;
+      count++;
+      notifyListeners();
+    }
+  }
+  double _scale = 1;
+  double get scale => _scale;
+  set scale(double v){
+    if(_scale!=v){
+      _scale = v;
+      count++;
+      notifyListeners();
+    }
+  }
+}
+
+///**ZH** 管理与通知文本编辑数据
+///
+///**EN** Manage and notify text editing data
 class TextEditorState extends ChangeNotifier{
-  TextEditingController? _textController;// 文本编辑控制器
-  Offset? _textCanvasPosition;// 文本框位置（左上角,canvas坐标）
-
-  TextEditingController? get textController => _textController;
-  Offset? get textCanvasPosition => _textCanvasPosition;
-
+  TextEditData? __textEditData;
+  TextEditData? get textEditData => __textEditData;
+  set _textEditData(TextEditData? v);
   TextEditorState();
+  //Core operations:
+  void enterTextEdit(TextEditData data,EditorState editorState);
+  void quitTextEdit(EditorState editorState);
 
-  /// 将TextEditor转换为Element
-  FreeformCanvasText? toElement();
-  void setValue(TextEditingController textController,Offset textCanvasPosition);
-  void clear();
+  @override void dispose();
 }
 ```
 
@@ -772,16 +855,16 @@ class ActiveLayerPainter extends CustomPainter {
 class FreeformCanvasPainter extends CustomPainter {
   int dirty;
   final List<FreeformCanvasElement> elements;
+  final FreeformCanvasAppState appState;
   final Color? backgroundColor;
   final String? draftId;
-  final double scale;
-  final Offset pan;
+  final EditorState editorState;
 
   FreeformCanvasPainter({
     required this.dirty,//用于触发重绘的计时器
     required this.elements,//文件中的所有元素
-    this.scale = 1,
-    this.pan = Offset.zero,
+    required this.appState,
+    required this.editorState,
     this.backgroundColor,
     this.draftId,//文件中的draft元素的id（不绘制该元素）
   });
@@ -790,21 +873,24 @@ class FreeformCanvasPainter extends CustomPainter {
 
 # 元素几何和命中测试
 ## 元素几何
-`ElementGeomatry`，计算元素边界、选择框、控制手柄等的工具类
+`ElementGeometry`，计算元素边界、选择框、控制手柄等的工具类
 
-文件`painters\element_geomatry.dart`
+文件`painters\element_geometry.dart`
 ```dart
 ///提供元素缩放控制点、边界矩形、控制点等的统一计算
-class ElementGeomatry {
-  ElementGeomatry._();
+class ElementGeometry {
+  ElementGeometry._();
   ///元素实际边界（不含缩放）
   static Rect border(FreeformCanvasElement element);
   ///元素选择框矩形（不含缩放）
   static Rect selectionRect(FreeformCanvasElement element);
   ///元素缩放手柄的相对位置（不含缩放）（rect顶点处为缩放手柄中心）
   static Rect resizeHandlePosition(FreeformCanvasElement element);
-  ///元素缩放手柄矩形
-  static Rect resizeHandleRect(Offset centerPoint);
+  static double get resizeHandleDiameter => 8;
+  ///**ZH** 元素缩放手柄矩形，画布坐标系。手柄大小随scale变化。
+  ///
+  ///**EN** Resize handle rectangle in the canvas coordinate system. The handle size changes with scale.
+  static Rect resizeHandleRect(Offset centerPoint,double scale)
   ///获取元素边界矩形中心
   static Offset center(FreeformCanvasElement element);
   ///以与元素旋转方向相反的方向旋转点（canvas坐标系）（用来判断某点是否在旋转后的矩形内）
@@ -815,6 +901,17 @@ class ElementGeomatry {
   static Offset rotateHandlePosition(FreeformCanvasElement element);
   ///获取元素旋转手柄的半径
   static double get rotateHandleRadius => 4;
+  ///**ZH** 根据相关字段计算文本宽高，返回（宽，高）
+  ///
+  ///**EN** Calculate the width and height of text based on related fields, return (width, height)
+  static (double, double) layoutText({
+    required String text,
+    required double fontSize,
+    required int fontFamily,
+    required String textAlign,
+    required String verticalAlign,
+    required double lineHeight,
+  })
 }
 ```
 ## 命中测试
@@ -906,7 +1003,7 @@ Interactor --> InteractionHandler --> EditSession --> EditIntent --> EditAction 
 该阶段`EditSession`的引入是为了进一步解耦UI层和业务逻辑，此时可以将Interaction层从系统中独立出来单独设计，有利于后续针对不同设备开发不同交互逻辑。
 
 ## `InteractionHandler`,`EditAction`,`EditIntent`和`EditSession`基类签名，以及交互数据类签名
-文件`interaction\edit_intent_and_session\foundamental.dart`
+文件`interaction\edit_intent_and_session\fundamental.dart`
 ```dart
 ///**ZH** 单次编辑操作的抽象
 ///**EN** The abstraction of a single edit operation
@@ -985,10 +1082,10 @@ class ElementDragSession extends EditSession{
   void onEnd();
 }
 ///缩放元素
-class RectResizeSession extends EditSession{
+class HandleResizeSession extends EditSession{
   final EditorState editorState;
   final ResizeHandle resizeHandle;
-  RectResizeSession({required this.resizeHandle,required this.editorState});
+  HandleResizeSession({required this.resizeHandle,required this.editorState});
 
   void onStart(Offset canvasPoint);
   void onUpdate(Offset canvasDelta);
@@ -1017,6 +1114,11 @@ class CreateFreedrawSession extends EditSession{
 class EraserSession extends EditSession{
   void onUpdate(Offset canvasPoint, EditorState editorState);
 }
+///文本编辑。文本编辑操作为长线操作，尽管本Session仅处理触发。
+///Text editing. Text editing operations are long-line operations, even though this Session only handles triggering.
+class TextEditSession extends EditSession{
+  void onTrigger(Offset canvasPoint, EditorState editorState);
+}
 ```
 
 ## `EditIntent`，`EditAction`的各类子签名
@@ -1035,19 +1137,20 @@ class DragEditAction extends EditAction{
   final FreeformCanvasElement oldElement;
 }
 
-///元素矩形缩放
-class RectScaleElementIntent extends EditIntent{
+///元素手柄缩放
+class HandleScaleElementIntent extends EditIntent{
   final String elementId;
-  final Rect startRect;
-  final Rect endRect;
+  final ResizeHandle startHandle;
+  final Offset offset;
 }
-class RectScaleElementAction extends EditAction{
+class HandleScaleElementAction extends EditAction{
   final String elementId;
-  final Rect startRect;
-  final Rect endRect;
+  final ResizeHandle startHandle;
+  final Offset offset;
+  final FreeformCanvasElement oldElement;
 }
 
-///元素矩形缩放
+///元素旋转
 class RotateElementIntent extends EditIntent{
   final String elementId;
   final double angleDelta;
@@ -1092,6 +1195,15 @@ class MoveZOrderAction extends EditAction{
   final int originalZOrder;
   final ZOrderAction zOrderAction;
 }
+///修改文本元素
+///Modify text element
+class TextUpdateIntent extends EditIntent{
+  final FreeformCanvasText updatedElement;
+}
+class TextUpdateAction extends EditAction{
+  final FreeformCanvasText updatedElement;
+  final FreeformCanvasText oldElement;
+}
 ```
 
 ## `InteractionHandler`的各子类签名
@@ -1105,7 +1217,7 @@ class TransformHandler extends InteractionHandler{}
 class SteppingTransformHandler extends InteractionHandler{}
 class SelectHandler extends InteractionHandler{}
 ///文本编辑工具
-class TextCreateHandler extends InteractionHandler{}
+class TextEditHandler extends InteractionHandler{}
 /// 自由绘制工具
 class FreeDrawHandler implements InteractionHandler{}
 /// 两点新建工具
@@ -1186,7 +1298,7 @@ class FreeformCanvasViewer extends StatefulWidget {
             'Must provide file or jsonString');
 }
 ```
-文件`lib\application\foundamental.dart`
+文件`lib\application\fundamental.dart`
 ```dart
 abstract class Overlays{
   const Overlays();
@@ -1256,10 +1368,17 @@ class _WindowsFreeformCanvasState extends State<WindowsFreeformCanvas> {
   final renderer = CanvasRenderer();
   final interactor = MouseKeyboardInteractor();
   final toolbar = WindowsToolbar();
+  late FreeformCanvasFile? file;
+  @override
+  void initState() {
+    super.initState();
+    file = widget.file;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FreeformCanvasViewer(
-      file: widget.file,
+      file: file,
       jsonString: widget.jsonString,
       renderer: renderer,
       interactor: interactor,
@@ -1326,13 +1445,14 @@ class CanvasRenderer extends Renderer{
   }
   @override
   Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextfieldWidget(editorState: editorState);
+    return TextEditWidget(editorState: editorState);
   }
 
   const CanvasRenderer();
 }
 ```
-`TextfieldWidget` `StaticLayerRendererWidget` `ActiveLayerRendererWidget` 均在本文件定义。
+`TextEditWidget` 在lib\application\renderers\text_edit_widget.dart定义
+`StaticLayerRendererWidget` `ActiveLayerRendererWidget` 在本文件定义。
 
 文件`lib\application\mouse_keyboard_interactor.dart`
 ```dart
@@ -1369,7 +1489,9 @@ freedraw工具下默认禁用触屏交互，允许触屏交互后可以直接用
 ///
 ///**EN** Canvas editor component adapted to e-ink screens. Verified on Bigme S6.
 class EInkFreeformCanvas extends StatefulWidget{
+
   final FreeformCanvasFile? file;
+
   final String? jsonString;
 
   final void Function(FreeformCanvasFile file)? onSave;
@@ -1389,10 +1511,17 @@ class _EInkFreeformCanvasState extends State<EInkFreeformCanvas> {
   final renderer = EInkScreenRenderer();
   final interactor = StylusAwareInteractor();
   final toolbar = EInkToolbar();
+  late FreeformCanvasFile? file;
+  @override
+  void initState() {
+    super.initState();
+    file = widget.file;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FreeformCanvasViewer(
-      file: widget.file,
+      file: file,
       jsonString: widget.jsonString,
       renderer: renderer,
       interactor: interactor,
@@ -1435,11 +1564,12 @@ class EInkScreenRenderer extends Renderer{
   
   @override
   Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextfieldWidget(editorState: editorState);
+    return TextEditWidget(editorState: editorState);
   }
 }
 ```
-`StaticLayerRendererWidget` `ActiveLayerRendererWidget` 在本文件定义，`TextfieldWidget`在`lib\application\canvas_renderer.dart`定义
+`TextEditWidget` 在lib\application\renderers\text_edit_widget.dart定义
+`StaticLayerRendererWidget` `ActiveLayerRendererWidget` 在本文件定义。
 
 文件`lib\application\stylus_aware_interactor.dart`
 ```dart

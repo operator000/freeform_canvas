@@ -31,10 +31,10 @@ class _InspectorWrapper extends StatelessWidget{
   
 }
 ///**ZH** 元素属性查看和修改面板。这个组件的结构比较复杂，分四层，在inspector文件夹中依次为
-///foundamental、selector、modifier、inspector
+///fundamental、selector、modifier、inspector
 ///
 ///**EN** The element property viewing and modification panel. This widget has a complex structure with four layers. 
-///In the inspector folder, they are: foundamental, selector, modifier, inspector
+///In the inspector folder, they are: fundamental, selector, modifier, inspector
 class Inspector extends StatefulWidget{
   final EditorState editorState;
 

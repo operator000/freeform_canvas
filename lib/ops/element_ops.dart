@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/widgets.dart';
+import 'package:freeform_canvas/hit_testers/extended_hit_tester.dart';
 import 'package:freeform_canvas/models/element_style.dart';
+import 'package:freeform_canvas/painters/element_geometry.dart';
 
 import '../models/freeform_canvas_element.dart';
 
@@ -341,7 +344,6 @@ class ElementOps {
     final width = maxX - minX;
     final height = maxY - minY;
 
-    // ID在插入元素时具体分配
     final id = DateTime.now().millisecondsSinceEpoch.toString();
 
     switch (type) {
@@ -941,149 +943,300 @@ class ElementOps {
     );
   }
 
-  /// **ZH** 对矩形、椭圆、自由绘制、文本元素进行几何缩放
+  /// **ZH** 对元素进行缩放操作（基于控制点位移的算法）
+  /// - 被拖动点根据 handleOffset 移动
   ///
-  /// 输入两个矩形 [fromRect] 和 [toRect]，其中toRect为fromRect经过某线性变换后的结果。
-  /// 函数对输入的元素进行完全一致的线性变换，返回新的元素实例。例外：文本元素等比缩放
-  /// 
-  /// **EN** Scale rectangle, ellipse, free drawing and text elements by a linear transformation.
-  /// 
-  /// Given two rectangles [fromRect] and [toRect], where [toRect] is the result of a linear transformation of [fromRect].
-  /// The function applies a linear transformation to the input element completely, and returns a new element instance. 
-  /// Exception: Text elements are scaled proportionally
-  static FreeformCanvasElement rectScaleElement(
-    FreeformCanvasElement element,
-    Rect fromRect,
-    Rect toRect,
+  /// **EN** Scale element based on control point displacement
+  /// Scale element based on dragged handle and offset
+  static FreeformCanvasElement handleScaleElement(
+    FreeformCanvasElement initialElement,
+    ResizeHandle handle,
+    Offset handleOffset,
   ) {
-    // 计算线性变换的比例
-    final scaleX = toRect.width / fromRect.width;
-    final scaleY = toRect.height / fromRect.height;
+    // 确定固定点（锚点）和初始移动点位置
+    Offset anchorPoint;
+    Offset initialMovingPoint;
 
-    switch (element.type) {
+    switch (handle) {
+      case ResizeHandle.tl:
+        // 拖动左上角，固定右下角
+        anchorPoint = Offset(
+          initialElement.x + initialElement.width,
+          initialElement.y + initialElement.height,
+        );
+        initialMovingPoint = Offset(initialElement.x, initialElement.y);
+      case ResizeHandle.tr:
+        // 拖动右上角，固定左下角
+        anchorPoint = Offset(
+          initialElement.x,
+          initialElement.y + initialElement.height,
+        );
+        initialMovingPoint = Offset(
+          initialElement.x + initialElement.width,
+          initialElement.y,
+        );
+      case ResizeHandle.bl:
+        // 拖动左下角，固定右上角
+        anchorPoint = Offset(
+          initialElement.x + initialElement.width,
+          initialElement.y,
+        );
+        initialMovingPoint = Offset(
+          initialElement.x,
+          initialElement.y + initialElement.height,
+        );
+      case ResizeHandle.br:
+        // 拖动右下角，固定左上角
+        anchorPoint = Offset(initialElement.x, initialElement.y);
+        initialMovingPoint = Offset(
+          initialElement.x + initialElement.width,
+          initialElement.y + initialElement.height,
+        );
+    }
+
+    // 计算新的移动点位置
+    final newMovingPoint = initialMovingPoint + handleOffset;
+
+    // 计算原始向量和新向量（相对于锚点）
+    final originalVector = initialMovingPoint - anchorPoint;
+    final newVector = newMovingPoint - anchorPoint;
+
+    // 计算缩放比例
+    final scaleX = originalVector.dx != 0 ? newVector.dx / originalVector.dx : 1.0;
+    final scaleY = originalVector.dy != 0 ? newVector.dy / originalVector.dy : 1.0;
+
+    switch (initialElement.type) {
       case FreeformCanvasElementType.rectangle:
       case FreeformCanvasElementType.ellipse:
       case FreeformCanvasElementType.diamond:
-        // 矩形、椭圆、菱形：直接应用线性变换
-        double newX = toRect.left + (element.x - fromRect.left) * scaleX;
-        double newY = toRect.top + (element.y - fromRect.top) * scaleY;
-        double newWidth = element.width * scaleX;
-        double newHeight = element.height * scaleY;
-        if(scaleX<0){
-          newWidth*=-1;
-          newX -= newWidth;
-        }
-        if(scaleY<0){
-          newHeight*=-1;
-          newY -= newHeight;
-        }
-
-        return copyWith(
-          element,
-          x: newX,
-          y: newY,
-          width: newWidth,
-          height: newHeight,
-        );
+        // 矩形、椭圆、菱形：直接缩放
+        return _scaleSimpleElement(initialElement, anchorPoint, scaleX, scaleY);
 
       case FreeformCanvasElementType.text:
-        // 文本元素：需要等比缩放
-        // 计算 x 方向和 y 方向的线性缩放量
-        final scaleX = toRect.width / fromRect.width;
-        final scaleY = toRect.height / fromRect.height;
-
-        // 取放大较多的缩放值（取绝对值较大的缩放值）
-        final uniformScale = scaleX.abs() > scaleY.abs() ? scaleX : scaleY;
-
-        // 计算线性变换的固定点（变换前后位置不变的点）
-        // 线性变换公式：x' = scaleX * x + tx, y' = scaleY * y + ty
-        // 从 fromRect 到 toRect 的变换参数：
-        final tx = toRect.left - scaleX * fromRect.left;
-        final ty = toRect.top - scaleY * fromRect.top;
-
-        // 固定点满足：x = scaleX * x + tx, y = scaleY * y + ty
-        // 即 x = tx / (1 - scaleX), y = ty / (1 - scaleY)
-        // 需要处理 scaleX == 1 或 scaleY == 1 的情况
-        Offset fixedPoint;
-        if ((scaleX - 1.0).abs() < 1e-10) {
-          // scaleX ≈ 1，x方向无缩放，固定点在x方向可以是任意值
-          // 取 fromRect 和 toRect 的x中心点作为参考
-          if ((scaleY - 1.0).abs() < 1e-10) {
-            // scaleY ≈ 1，两个方向都无缩放，只有平移，固定点不存在（无穷远）
-            // 使用 fromRect 的中心点作为缩放中心
-            fixedPoint = fromRect.center;
-          } else {
-            // 只有y方向有缩放，固定点x坐标任意，取 fromRect 的x中心
-            final fixedY = ty / (1 - scaleY);
-            fixedPoint = Offset(fromRect.center.dx, fixedY);
-          }
-        } else if ((scaleY - 1.0).abs() < 1e-10) {
-          // 只有x方向有缩放，固定点y坐标任意，取 fromRect 的y中心
-          final fixedX = tx / (1 - scaleX);
-          fixedPoint = Offset(fixedX, fromRect.center.dy);
-        } else {
-          // 两个方向都有缩放，计算唯一固定点
-          final fixedX = tx / (1 - scaleX);
-          final fixedY = ty / (1 - scaleY);
-          fixedPoint = Offset(fixedX, fixedY);
-        }
-
-        // 以固定点为缩放中心进行等比缩放
-        // 等比缩放变换：newPos = fixedPoint + (oldPos - fixedPoint) * uniformScale
-        double newX = fixedPoint.dx + (element.x - fixedPoint.dx) * uniformScale;
-        double newY = fixedPoint.dy + (element.y - fixedPoint.dy) * uniformScale;
-        double newWidth = element.width * uniformScale;
-        double newHeight = element.height * uniformScale;
-        if(uniformScale<0){
-          newWidth*=-1;
-          newX -= newWidth;
-        }
-        if(uniformScale<0){
-          newHeight*=-1;
-          newY -= newHeight;
-        }
-
-        // 字体大小等比缩放
-        final textElement = element as FreeformCanvasText;
-        final newFontSize = textElement.fontSize * uniformScale.abs();
-
-        return copyWith(
-          element,
-          x: newX,
-          y: newY,
-          width: newWidth,
-          height: newHeight,
-          fontSize: newFontSize,
-        );
+        // 文本元素：等比缩放
+        return _scaleTextElement(initialElement, anchorPoint, scaleX, scaleY);
 
       case FreeformCanvasElementType.freedraw:
-        // 自由绘制元素：缩放位置、尺寸和所有路径点
-        final newX = toRect.left + (element.x - fromRect.left) * scaleX;
-        final newY = toRect.top + (element.y - fromRect.top) * scaleY;
-        final newWidth = element.width * scaleX;
-        final newHeight = element.height * scaleY;
-
-        // 缩放路径点（相对坐标）
-        final freedraw = element as FreeformCanvasFreedraw;
-        final scaledPoints = freedraw.points.map((point) {
-          return FreeformCanvasPoint(
-            point.x * scaleX,
-            point.y * scaleY,
-          );
-        }).toList();
-
-        return copyWith(
-          element,
-          x: newX,
-          y: newY,
-          width: newWidth.abs(),
-          height: newHeight.abs(),
-          points: scaledPoints,
-        );
-
-      default:
-        throw ArgumentError('rectScaleElement 不支持元素类型: ${element.type}');
+      case FreeformCanvasElementType.arrow:
+      case FreeformCanvasElementType.line:
+        // 带路径点的元素：等比缩放
+        return _scaleElementWithPoints(initialElement, anchorPoint, scaleX, scaleY);
     }
+  }
+
+  /// 缩放简单元素（矩形、椭圆、菱形）
+  static FreeformCanvasElement _scaleSimpleElement(
+    FreeformCanvasElement element,
+    Offset anchor,
+    double scaleX,
+    double scaleY,
+  ) {
+    // 计算新的位置和尺寸
+    final elementTopLeft = Offset(element.x, element.y);
+    final relativeToAnchor = elementTopLeft - anchor;
+
+    final scaledRelative = Offset(
+      relativeToAnchor.dx * scaleX,
+      relativeToAnchor.dy * scaleY,
+    );
+    final newTopLeft = anchor + scaledRelative;
+
+    double newX = newTopLeft.dx;
+    double newY = newTopLeft.dy;
+    double newWidth = element.width * scaleX;
+    double newHeight = element.height * scaleY;
+
+    // 规范化：确保 width/height 为正
+    if (newWidth < 0) {
+      newX += newWidth;
+      newWidth = -newWidth;
+    }
+    if (newHeight < 0) {
+      newY += newHeight;
+      newHeight = -newHeight;
+    }
+
+    return copyWith(
+      element,
+      x: newX,
+      y: newY,
+      width: newWidth,
+      height: newHeight,
+    );
+  }
+
+  /// 缩放文本元素（等比缩放，支持翻转）
+  static FreeformCanvasElement _scaleTextElement(
+    FreeformCanvasElement element,
+    Offset anchor,
+    double scaleX,
+    double scaleY,
+  ) {
+    // 选择较大的缩放比例进行等比缩放
+    final uniformScale = scaleX.abs() > scaleY.abs() ? scaleX : scaleY;
+
+    // 根据缩放比例的符号判断是否发生翻转，并调整锚点
+    // 当scaleX < 0时，发生水平翻转，锚点x坐标需要调整
+    // 当scaleY < 0时，发生垂直翻转，锚点y坐标需要调整
+    Offset adjustedAnchor = anchor;
+
+    // 计算元素的四个角点
+    final topLeft = Offset(element.x, element.y);
+    final topRight = Offset(element.x + element.width, element.y);
+    final bottomLeft = Offset(element.x, element.y + element.height);
+    final bottomRight = Offset(element.x + element.width, element.y + element.height);
+
+    // 根据原始锚点和翻转情况确定新锚点
+    if (anchor == topLeft) {
+      // 原锚点是左上角
+      if (scaleX < 0 && scaleY < 0) {
+        // 双向翻转：新锚点是右下角
+        adjustedAnchor = bottomRight;
+      } else if (scaleX < 0) {
+        // 水平翻转：新锚点是右上角
+        adjustedAnchor = topRight;
+      } else if (scaleY < 0) {
+        // 垂直翻转：新锚点是左下角
+        adjustedAnchor = bottomLeft;
+      }
+    } else if (anchor == topRight) {
+      // 原锚点是右上角
+      if (scaleX < 0 && scaleY < 0) {
+        // 双向翻转：新锚点是左下角
+        adjustedAnchor = bottomLeft;
+      } else if (scaleX < 0) {
+        // 水平翻转：新锚点是左上角
+        adjustedAnchor = topLeft;
+      } else if (scaleY < 0) {
+        // 垂直翻转：新锚点是右下角
+        adjustedAnchor = bottomRight;
+      }
+    } else if (anchor == bottomLeft) {
+      // 原锚点是左下角
+      if (scaleX < 0 && scaleY < 0) {
+        // 双向翻转：新锚点是右上角
+        adjustedAnchor = topRight;
+      } else if (scaleX < 0) {
+        // 水平翻转：新锚点是右下角
+        adjustedAnchor = bottomRight;
+      } else if (scaleY < 0) {
+        // 垂直翻转：新锚点是左上角
+        adjustedAnchor = topLeft;
+      }
+    } else if (anchor == bottomRight) {
+      // 原锚点是右下角
+      if (scaleX < 0 && scaleY < 0) {
+        // 双向翻转：新锚点是左上角
+        adjustedAnchor = topLeft;
+      } else if (scaleX < 0) {
+        // 水平翻转：新锚点是左下角
+        adjustedAnchor = bottomLeft;
+      } else if (scaleY < 0) {
+        // 垂直翻转：新锚点是右上角
+        adjustedAnchor = topRight;
+      }
+    }
+
+    // 使用调整后的锚点计算新的位置和尺寸
+    final elementTopLeft = Offset(element.x, element.y);
+    final relativeToAnchor = elementTopLeft - adjustedAnchor;
+
+    final scaledRelative = Offset(
+      relativeToAnchor.dx * uniformScale.abs(),
+      relativeToAnchor.dy * uniformScale.abs(),
+    );
+    final newTopLeft = adjustedAnchor + scaledRelative;
+
+    double newX = newTopLeft.dx;
+    double newY = newTopLeft.dy;
+    double newWidth = element.width * uniformScale.abs();
+    double newHeight = element.height * uniformScale.abs();
+
+    // 规范化：确保 width/height 为正
+    if (newWidth < 0) {
+      newX += newWidth;
+      newWidth = -newWidth;
+    }
+    if (newHeight < 0) {
+      newY += newHeight;
+      newHeight = -newHeight;
+    }
+
+    final textElement = element as FreeformCanvasText;
+    final newFontSize = textElement.fontSize * uniformScale.abs();
+
+    return copyWith(
+      element,
+      x: newX,
+      y: newY,
+      width: newWidth,
+      height: newHeight,
+      fontSize: newFontSize,
+    );
+  }
+
+  /// 缩放带路径点的元素（freedraw、arrow、line）- 非等比缩放
+  static FreeformCanvasElement _scaleElementWithPoints(
+    FreeformCanvasElement element,
+    Offset anchor,
+    double scaleX,
+    double scaleY,
+  ) {
+    // 获取路径点
+    final pointsElement = element as ElementWithPoints;
+
+    // 缩放所有点（先转换为绝对坐标，缩放后再转回相对坐标）
+    final scaledAbsolutePoints = pointsElement.points.map((point) {
+      // 点的绝对坐标
+      final absX = element.x + point.x;
+      final absY = element.y + point.y;
+
+      // 相对于锚点
+      final relX = absX - anchor.dx;
+      final relY = absY - anchor.dy;
+
+      // 非等比缩放
+      final scaledRelX = relX * scaleX;
+      final scaledRelY = relY * scaleY;
+
+      // 新的绝对坐标
+      final newAbsX = anchor.dx + scaledRelX;
+      final newAbsY = anchor.dy + scaledRelY;
+
+      return Offset(newAbsX, newAbsY);
+    }).toList();
+
+    // 计算新的边界框
+    double minX = double.infinity;
+    double minY = double.infinity;
+    double maxX = -double.infinity;
+    double maxY = -double.infinity;
+
+    for (final point in scaledAbsolutePoints) {
+      minX = min(minX, point.dx);
+      minY = min(minY, point.dy);
+      maxX = max(maxX, point.dx);
+      maxY = max(maxY, point.dy);
+    }
+
+    final newX = minX;
+    final newY = minY;
+    final newWidth = maxX - minX;
+    final newHeight = maxY - minY;
+
+    // 转换为相对坐标
+    final relativePoints = scaledAbsolutePoints.map((point) {
+      return FreeformCanvasPoint(point.dx - newX, point.dy - newY);
+    }).toList();
+
+    return copyWith(
+      element,
+      x: newX,
+      y: newY,
+      width: newWidth,
+      height: newHeight,
+      points: relativePoints,
+    );
   }
 
   /// **ZH** 对箭头、直线元素进行起点或终点的坐标偏移
@@ -1265,6 +1418,54 @@ class ElementOps {
       fontFamily: patch.fontFamily ?? _Unset(),
       textAlign: patch.textAlign ?? _Unset(),
     );
+  }
+  /// **ZH** 修改与元素文本相关的字段，同时会重新计算宽高。
+  /// 
+  /// **EN** Modify the fields related to the element's text and recalculate the width and height.
+  static FreeformCanvasText textElementModify(FreeformCanvasText element,{
+    // Object? width = _unset,
+    // Object? height = _unset,
+
+    Object? text = _unset,
+    // Object? originalText = _unset,
+    Object? fontSize = _unset,
+    Object? fontFamily = _unset,
+    Object? textAlign = _unset,
+    Object? verticalAlign = _unset,
+    Object? lineHeight = _unset,
+    // Object? autoResize = _unset,
+    // Object? containerId = _unset,
+  }){
+    final newText = _getValue(text, element.text);
+    final newFontSize = _getValue(fontSize, element.fontSize);
+    final newFontFamily = _getValue(fontFamily, element.fontFamily);
+    final newTextAlign = _getValue(textAlign, element.textAlign);
+    final newVerticalAlign = _getValue(verticalAlign, element.verticalAlign);
+    final newLineHeight = _getValue(lineHeight, element.lineHeight);
+
+    var (width,height) = ElementGeometry.layoutText(
+      text: newText,
+      fontSize: newFontSize, 
+      fontFamily: newFontFamily, 
+      textAlign: newTextAlign, 
+      verticalAlign: newVerticalAlign, 
+      lineHeight: newLineHeight
+    );
+
+    return ElementOps.copyWith(
+      element,
+      width: width,
+      height: height,
+      text: newText,
+      originalText: newText,
+      fontSize: newFontSize,
+      fontFamily: newFontFamily,
+      textAlign: newTextAlign,
+      verticalAlign: newVerticalAlign,
+      lineHeight: newLineHeight,
+      // autoResize: autoResize ?? _unset,
+      // containerId: containerId ?? _unset,
+    ) as FreeformCanvasText;
   }
 }
 

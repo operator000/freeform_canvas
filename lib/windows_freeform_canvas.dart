@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/canvas_renderer.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
-import 'package:freeform_canvas/application/mouse_keyboard_interactor.dart';
-import 'package:freeform_canvas/freeform_canvas_viewer.dart';
+import 'package:freeform_canvas/application/renderers/canvas_renderer.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
+import 'package:freeform_canvas/application/interactors/mouse_keyboard_interactor.dart';
+import 'package:freeform_canvas/application/freeform_canvas_viewer.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import 'package:freeform_canvas/overlays/windows_toolbar.dart';
 ///**ZH** 适配电脑桌面的画布编辑器组件，在 Windows11 上验证无误。
@@ -31,10 +31,17 @@ class _WindowsFreeformCanvasState extends State<WindowsFreeformCanvas> {
   final renderer = CanvasRenderer();
   final interactor = MouseKeyboardInteractor();
   final toolbar = WindowsToolbar();
+  late FreeformCanvasFile? file;
+  @override
+  void initState() {
+    super.initState();
+    file = widget.file;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FreeformCanvasViewer(
-      file: widget.file,
+      file: file,
       jsonString: widget.jsonString,
       renderer: renderer,
       interactor: interactor,

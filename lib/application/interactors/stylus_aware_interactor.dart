@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/interaction_handlers/interaction_handler.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
@@ -108,8 +108,8 @@ class _StylusAwareInteractorWidgetState extends State<StylusAwareInteractorWidge
   ///
   ///**EN** Determine whether the GestureDetector should handle the event.
   ///GestureDetector handles all scaling operations and the translation operation of freedraw
-  bool _isValidGesture(PointerDeviceKind? kind){
-    return widget.editorState.toolState.currentTool!=EditorTool.freedraw
+  bool _isValidGesture(PointerDeviceKind? kind,int pointerCount){
+    return (widget.editorState.toolState.currentTool!=EditorTool.freedraw && pointerCount>1)
       || (!widget.notifier.pointerDeviceExclusive
       && kind != mainDeviceKind);
   }
@@ -142,11 +142,11 @@ class _StylusAwareInteractorWidgetState extends State<StylusAwareInteractorWidge
         && !widget.notifier.pointerDeviceExclusive
       ){
         ///Temporary drag in freedraw mode
-        currentController = SteppingTransformHandler();
+        currentController = TransformHandler();
       }else{
         switch(widget.editorState.toolState.currentTool){
           case EditorTool.drag:
-            currentController = SteppingTransformHandler();
+            currentController = TransformHandler();
           case EditorTool.select:
             currentController = SelectHandler();
           case EditorTool.rectangle:
@@ -162,7 +162,7 @@ class _StylusAwareInteractorWidgetState extends State<StylusAwareInteractorWidge
           case EditorTool.freedraw:
             currentController = FreeDrawHandler();
           case EditorTool.text:
-            currentController = TextCreateHandler();
+            currentController = TextEditHandler();
           case EditorTool.eraser:
             currentController = EraserHandler();
         }
@@ -196,8 +196,8 @@ class _StylusAwareInteractorWidgetState extends State<StylusAwareInteractorWidge
   // GestureDetector Callbacks
 
   void _handleScaleStart(ScaleStartDetails details) {
-    if(_isValidGesture(details.kind)){
-      currentController = SteppingTransformHandler();
+    if(_isValidGesture(details.kind,details.pointerCount)){
+      currentController = TransformHandler();
       final iEvent = InputStartEvent(localPoint: details.localFocalPoint);
       currentController?.onScaleStart(iEvent, widget.editorState);
       onGestureHandle = true;

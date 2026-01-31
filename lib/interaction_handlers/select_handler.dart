@@ -1,16 +1,17 @@
 import 'package:flutter/gestures.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
-import 'package:freeform_canvas/interaction_handlers/element_edit/element_edit_controller.dart';
+import 'package:freeform_canvas/interaction_handlers/secondary_handlers/element_edit_secondary_handler.dart';
 import 'package:freeform_canvas/interaction_handlers/interaction_handler.dart';
 
 class SelectHandler extends InteractionHandler {
-  ElementEditController? _editController;
+  InteractionSecondaryHandler? _secondaryHandler;
   late Offset lastCanvasPoint;
+  SelectHandler();
   @override
   void onScaleStart(InputStartEvent event, EditorState editorState) {
-    _editController = ElementEditController.createController(event.localPoint, editorState);
+    _secondaryHandler = InteractionSecondaryHandler.createHandler(event.localPoint, editorState);
     lastCanvasPoint = screenToCanvas(editorState.scale, editorState.pan, event.localPoint);
-    _editController!.onPanStart(
+    _secondaryHandler!.onPanStart(
       lastCanvasPoint, 
       editorState
     );
@@ -19,7 +20,7 @@ class SelectHandler extends InteractionHandler {
   @override
   void onScaleUpdate(InputUpdateEvent event, EditorState editorState) {
     final canvasPoint = screenToCanvas(editorState.scale, editorState.pan, event.localPoint);
-    _editController!.onPanUpdate(
+    _secondaryHandler!.onPanUpdate(
       canvasPoint - lastCanvasPoint, 
       editorState
     );
@@ -28,6 +29,6 @@ class SelectHandler extends InteractionHandler {
 
   @override
   void onScaleEnd(InputEndEvent event,EditorState editorState){
-    _editController?.onPanEnd(editorState);
+    _secondaryHandler?.onPanEnd(editorState);
   }
 }

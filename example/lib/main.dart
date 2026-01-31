@@ -23,22 +23,13 @@ class _FreeformCanvasExampleAppState extends State<FreeformCanvasExampleApp> {
         scaffoldBackgroundColor: Colors.blue[50],
       ),
       home: Scaffold(
-        body: FutureBuilder(
-          future: Future.value(EMBEDDED), 
-          builder: (context,snapshot){
-            if(snapshot.hasData){
-              return SafeArea(
-                child: WindowsFreeformCanvas(
-                  jsonString: snapshot.data,
-                  onSave: (file) {
-                    print('save...');
-                  },
-                )
-              );
-            }else{
-              return Text('loading...');
-            }
-          }
+        body: SafeArea(
+          child: WindowsFreeformCanvas(
+            jsonString: EMBEDDED,
+            onSave: (file) {
+              print('save...');
+            },
+          )
         )
       ),
     );

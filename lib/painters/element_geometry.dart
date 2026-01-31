@@ -6,8 +6,8 @@ import 'package:freeform_canvas/models/freeform_canvas_element.dart';
 ///
 ///**EN** Provides unified calculation of element scaling control points, boundary rectangles, and control points.
 /// All coordinates are in the canvas coordinate system.
-class ElementGeomatry {
-  ElementGeomatry._();
+class ElementGeometry {
+  ElementGeometry._();
   ///**ZH** 元素实际边界
   ///
   ///**EN** Actual element boundary
@@ -35,27 +35,27 @@ class ElementGeomatry {
   ///**EN** Selection box rectangle
   static Rect selectionRect(FreeformCanvasElement element){
     final double inflate = 5;
-    return ElementGeomatry.border(element).inflate(inflate);
+    return ElementGeometry.border(element).inflate(inflate);
   }
   ///**ZH** 元素缩放手柄的相对位置（rect顶点处为缩放手柄中心）
   ///
   ///**EN** The relative position of the resize handle 
   ///(the center of the resize handle is at the top left corner of the rect)
   static Rect resizeHandlePosition(FreeformCanvasElement element){
-    return ElementGeomatry.border(element).inflate(10);
+    return ElementGeometry.border(element).inflate(10);
   }
-  ///**ZH** 元素缩放手柄矩形
+  static double get resizeHandleDiameter => 8;
+  ///**ZH** 元素缩放手柄矩形，画布坐标系。手柄大小随scale变化。
   ///
-  ///**EN** Resize handle rectangle
-  static Rect resizeHandleRect(Offset centerPoint){
-    final double d = 8;
-    return Rect.fromCenter(center: centerPoint, width: d, height: d);
+  ///**EN** Resize handle rectangle in the canvas coordinate system. The handle size changes with scale.
+  static Rect resizeHandleRect(Offset centerPoint,double scale){
+    return Rect.fromCenter(center: centerPoint, width: resizeHandleDiameter/scale, height: resizeHandleDiameter/scale);
   }
   ///**ZH** 获取元素边界矩形中心
   ///
   ///**EN** Get the center of the element boundary rectangle
   static Offset center(FreeformCanvasElement element){
-    final rect = ElementGeomatry.border(element);
+    final rect = ElementGeometry.border(element);
     return rect.center;
   }
   ///**ZH** 以与元素旋转方向相反的方向旋转点（用来判断某点是否在旋转后的矩形内）
@@ -63,7 +63,7 @@ class ElementGeomatry {
   ///**EN** Rotate the point in the opposite direction of the element rotation
   ///(used to determine whether the point is in the rotated rectangle after rotation)
   static Offset inversedElementRotate(FreeformCanvasElement element,Offset offset){
-    final center = ElementGeomatry.center(element);
+    final center = ElementGeometry.center(element);
     final dx = offset.dx-center.dx;
     final dy = offset.dy-center.dy;
     final l = sqrt(pow(dx, 2)+pow(dy, 2));
@@ -74,7 +74,7 @@ class ElementGeomatry {
   ///
   ///**EN** Rotate the point in the same direction as the element rotation
   static Offset correspondedElementRotate(FreeformCanvasElement element,Offset offset){
-    final center = ElementGeomatry.center(element);
+    final center = ElementGeometry.center(element);
     final dx = offset.dx-center.dx;
     final dy = offset.dy-center.dy;
     final l = sqrt(pow(dx, 2)+pow(dy, 2));
@@ -103,4 +103,28 @@ class ElementGeomatry {
   ///
   ///**EN** Get the radius of the element rotation handle
   static double get rotateHandleRadius => 4;
+  ///**ZH** 根据相关字段计算文本宽高，返回（宽，高）
+  ///
+  ///**EN** Calculate the width and height of text based on related fields, return (width, height)
+  static (double, double) layoutText({
+    required String text,
+    required double fontSize,
+    required int fontFamily,
+    required String textAlign,
+    required String verticalAlign,
+    required double lineHeight,
+  }){
+    final textStyle = TextStyle(
+      color: const Color(0xff000000),
+      fontSize: fontSize,
+      height: lineHeight,
+    );
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: textStyle),
+      textAlign: TextAlign.left,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    return (textPainter.width, textPainter.height);
+  }
 }

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
+import 'package:freeform_canvas/models/freeform_canvas_element.dart';
+import 'package:freeform_canvas/models/text_editing_data.dart';
 
 class EInkToolbar extends Overlays{
   @override
@@ -19,6 +21,7 @@ class EInkToolbar extends Overlays{
       _buildToolButton(editorState: editorState,tool: EditorTool.eraser),
       _buildUndoButton(editorState: editorState),
       _buildRedoButton(editorState: editorState),
+      _buildTextEditButton(editorState: editorState)
     ];
   }
 
@@ -48,12 +51,26 @@ class EInkToolbar extends Overlays{
       ),
     );
   }
-  static Widget _buildUndoButton({required EditorState editorState}){
-    return LongpressButtonUI(onPressed: ()=>editorState.undo(), icon: Icons.undo, message: 'undo');
-  }
-  static Widget _buildRedoButton({required EditorState editorState}){
-    return LongpressButtonUI(onPressed: ()=>editorState.redo(), icon: Icons.redo, message: 'redo');
-  }
+}
+Widget _buildUndoButton({required EditorState editorState}){
+  return LongpressButtonUI(onPressed: ()=>editorState.undo(), icon: Icons.undo, message: 'undo');
+}
+Widget _buildRedoButton({required EditorState editorState}){
+  return LongpressButtonUI(onPressed: ()=>editorState.redo(), icon: Icons.redo, message: 'redo');
+}
+Widget _buildTextEditButton({required EditorState editorState}){
+  return ListenableBuilder(listenable: editorState.focusState, builder: (_,_){
+    final element = editorState.focusedElement;
+    if(element is FreeformCanvasText){
+      return LongpressButtonUI(
+        onPressed: ()=>editorState.enterTextEdit(TextEditData.fromElement(element: element)), 
+        icon: Icons.text_format, 
+        message: 'edit text'
+      );
+    }else{
+      return SizedBox.shrink();
+    }
+  });
 }
 //下面三个类为本Overlay按钮使用的按钮风格组件，用于自定义新的按钮
 // The following three classes are button styles used by the buttons in this Overlay,

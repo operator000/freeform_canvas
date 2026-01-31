@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/painters/active_layer_painter.dart';
 import 'package:freeform_canvas/painters/static_layer_painter.dart';
-import 'package:freeform_canvas/interaction_handlers/transform_handler.dart';
-import 'package:freeform_canvas/zero_padding_textfield.dart';
+import 'package:freeform_canvas/application/renderers/text_edit_widget.dart';
 
 class CanvasRenderer extends Renderer{
   @override
@@ -17,69 +16,10 @@ class CanvasRenderer extends Renderer{
   
   @override
   Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextfieldWidget(editorState: editorState);
+    return TextEditWidget(editorState: editorState);
   }
 
   const CanvasRenderer();
-}
-
-class TextfieldWidget extends StatefulWidget{
-  final EditorState editorState;
-
-  const TextfieldWidget({super.key, required this.editorState});
-
-  @override
-  State<TextfieldWidget> createState() => _TextfieldWidgetState();
-}
-
-class _TextfieldWidgetState extends State<TextfieldWidget> {
-  @override
-  void initState() {
-    super.initState();
-    widget.editorState.textEditorState.addListener(_setState);
-  }
-  @override
-  void dispose() {
-    super.dispose();
-    widget.editorState.textEditorState.removeListener(_setState);
-  }
-  void _setState(){
-    if(mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textEditorState = widget.editorState.textEditorState;
-    if(textEditorState.textController==null){
-      return SizedBox.shrink();
-    }else{
-      Offset? textScreenPosition;
-      textScreenPosition = canvasToScreen(
-        widget.editorState.scale, 
-        widget.editorState.pan, 
-        textEditorState.textCanvasPosition!
-      );
-      return Positioned(
-        left: textScreenPosition.dx-4,
-        top: textScreenPosition.dy-4,
-        child: SizedBox(
-          child: DecoratedBox(
-            decoration: BoxDecoration(border: BoxBorder.all()),
-            child: Padding(
-              padding: EdgeInsetsGeometry.all(4),
-              child: ZeroPaddingTextfield(
-                key: UniqueKey(),
-                textEditingController: textEditorState.textController!,
-                onDone: () {
-                  widget.editorState.quitTextEdit();
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-  }
 }
 
 class StaticLayerRendererWidget extends StatefulWidget{
@@ -97,6 +37,7 @@ class _StaticLayerRendererWidgetState extends State<StaticLayerRendererWidget> {
     widget.editorState.fileState.addListener(_setState);
     widget.editorState.transformState.addListener(_setState);
     widget.editorState.focusState.addListener(_setState);
+    widget.editorState.textEditorState.addListener(_setState);
   }
   @override
   void dispose() {
@@ -104,6 +45,7 @@ class _StaticLayerRendererWidgetState extends State<StaticLayerRendererWidget> {
     widget.editorState.fileState.removeListener(_setState);
     widget.editorState.transformState.removeListener(_setState);
     widget.editorState.focusState.removeListener(_setState);
+    widget.editorState.textEditorState.removeListener(_setState);
   }
   void _setState(){
     setState(() {});
@@ -116,10 +58,13 @@ class _StaticLayerRendererWidgetState extends State<StaticLayerRendererWidget> {
       child: RepaintBoundary(
         child: CustomPaint(
           painter: FreeformCanvasPainter(
-            dirty: widget.editorState.fileState.count + widget.editorState.transformState.count + widget.editorState.focusState.count,
+            dirty: widget.editorState.fileState.count 
+              + widget.editorState.transformState.count 
+              + widget.editorState.focusState.count
+              + widget.editorState.textEditorState.count,
             elements: file.elements,
-            scale: widget.editorState.scale,
-            pan: widget.editorState.pan,
+            appState: file.appState,
+            editorState: widget.editorState,
             backgroundColor: file.appState.viewBackgroundColor,
             draftId: widget.editorState.draftState.draftId,
           ),

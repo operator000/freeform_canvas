@@ -55,7 +55,7 @@ WindowsFreeformCanvas(
 ```
 ```dart
 EInkFreeformCanvas(
-    jsonString: data,
+    jsonString: FreeformCanvasFileOps.emptyFile(),
     onSave: (file) {
     print('save...');
     },

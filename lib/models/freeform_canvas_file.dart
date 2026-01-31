@@ -11,7 +11,7 @@ class FreeformCanvasFile {
   final String? source;
   final List<FreeformCanvasElement> elements;
   final FreeformCanvasAppState appState;
-  final Map<String, dynamic> files; // 方案B忽略，但保留字段
+  final Map<String, dynamic> files;
 
   FreeformCanvasFile({
     required this.type,
@@ -62,25 +62,35 @@ class FreeformCanvasFile {
 /// 包含背景色、网格等全局设置
 class FreeformCanvasAppState {
   final Color viewBackgroundColor;
-  final int? gridSize;
-  final int? gridStep;
-  final bool? gridModeEnabled;
+  final int gridSize;
+  final int gridStep;
+  final bool gridModeEnabled;
   final Map<String, dynamic> lockedMultiSelections;
 
   FreeformCanvasAppState({
     required this.viewBackgroundColor,
-    this.gridSize,
-    this.gridStep,
-    this.gridModeEnabled,
+    required this.gridSize,
+    required this.gridStep,
+    required this.gridModeEnabled,
     required this.lockedMultiSelections,
   });
+
+  factory FreeformCanvasAppState.std(){
+    return FreeformCanvasAppState(
+      viewBackgroundColor: const Color.fromRGBO(255, 255, 255, 1),
+      gridSize: 20,
+      gridStep: 5,
+      gridModeEnabled: false,
+      lockedMultiSelections: {},
+    );
+  }
 
   factory FreeformCanvasAppState.fromJson(Map<String, dynamic> json) {
     return FreeformCanvasAppState(
       viewBackgroundColor: _parseColor(json['viewBackgroundColor'] as String?),
-      gridSize: json['gridSize'] as int?,
-      gridStep: json['gridStep'] as int?,
-      gridModeEnabled: json['gridModeEnabled'] as bool?,
+      gridSize: json['gridSize'] as int,
+      gridStep: json['gridStep'] as int,
+      gridModeEnabled: json['gridModeEnabled'] as bool,
       lockedMultiSelections:
           Map<String, dynamic>.from(json['lockedMultiSelections'] as Map? ?? {}),
     );

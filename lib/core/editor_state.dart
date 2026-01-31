@@ -1,7 +1,8 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:freeform_canvas/core/edit_intent_and_session/intents.dart';
 import 'package:freeform_canvas/custom_icons.dart';
-import 'package:freeform_canvas/core/edit_intent_and_session/foundamental.dart';
+import 'package:freeform_canvas/core/edit_intent_and_session/fundamental.dart';
+import 'package:freeform_canvas/models/text_editing_data.dart';
 import 'package:freeform_canvas/ops/freeform_canvas_file_ops.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import '../models/freeform_canvas_element.dart';
@@ -131,6 +132,7 @@ class EditorState extends ChangeNotifier{
   ///**EN** Create an element and enter the preview mode (cancel focus)
   void newAndEnterPreview(FreeformCanvasElement element){
     focusState.cancelFocus();
+    textEditorState.quitTextEdit(this);
     draftState.draftElement = element;
   }
   ///**ZH** 确保某文档元素为预览元素并处在预览模式(让 focus 指向预览元素)
@@ -140,6 +142,9 @@ class EditorState extends ChangeNotifier{
     if(elementId==draftState.draftId) return;
     final element = FreeformCanvasFileOps.findElement(_file!, elementId);
     if(element!=null){
+      if(elementId!=textEditorState.textEditData?.behalfElement.id){
+        textEditorState.quitTextEdit(this);
+      }
       draftState.draftElement = element;
       draftState.draftId = elementId;
       focusState.focusOnDraft();
@@ -164,17 +169,11 @@ class EditorState extends ChangeNotifier{
   }
   // 文本编辑控制
   // Text editor control
-  void enterTextEdit(TextEditingController textController,Offset textCanvasPosition){//进入文本编辑
-    textEditorState.setValue(textController, textCanvasPosition);
-  }
-  void quitTextEdit(){
-    final e = textEditorState.toElement();
-    if(e!=null){
-      _modifyFile(FreeformCanvasFileOps.addElement(_file!, e));
-      focusState.focusOnElement(e.id);
-    }
-    textEditorState.clear();
-  }
+  void enterTextEdit(TextEditData data) => textEditorState.enterTextEdit(data,this);
+  ///**ZH** 退出文本编辑并视情况保存元素
+  ///
+  ///**EN** Exit text editing and save the element as needed
+  void quitTextEdit() => textEditorState.quitTextEdit(this);
 
   ///**ZH** 切换工具
   ///
@@ -200,12 +199,10 @@ class EditorState extends ChangeNotifier{
   //canvas = screen/scale - pan
   Offset get pan => transformState.pan;
   set pan(Offset v){
-    quitTextEdit();
     transformState.pan = v;
   }
   double get scale => transformState.scale;
   set scale(double v){
-    quitTextEdit();
     transformState.scale = v;
   }
 
@@ -218,7 +215,7 @@ class EditorState extends ChangeNotifier{
   @override
   void dispose(){
     super.dispose();
-    textEditorState.textController?.dispose();
+    textEditorState.dispose();
   }
 }
 
@@ -364,94 +361,48 @@ class TransformState extends ChangeNotifier{
 ///
 ///**EN** Manage and notify text editing data
 class TextEditorState extends ChangeNotifier{
-  TextEditingController? _textController;// 文本编辑控制器
-  Offset? _textCanvasPosition;// 文本框位置（左上角,canvas坐标）
-
-  TextEditingController? get textController => _textController;
-  Offset? get textCanvasPosition => _textCanvasPosition;
+  int count = 0;
+  TextEditData? __textEditData;// 文本编辑数据
+  TextEditData? get textEditData => __textEditData;
+  set _textEditData(TextEditData? v){
+    if(__textEditData!=v){
+      __textEditData?.dispose();
+      __textEditData = v;
+    }
+  }
+  void notify(){
+    notifyListeners();
+    count++;
+  }
 
   TextEditorState();
 
-  /// 将TextEditor转换为Element
-  FreeformCanvasText? toElement() {
+  ///进入文本编辑
+  void enterTextEdit(TextEditData data,EditorState editorState){
+    _textEditData = data;
+    notify();
+  }
 
-    final text = textController?.text.trim();
-
-    // 如果文本非空，创建文本元素
-    if (text!=null&&text.isNotEmpty) {
-      final time = DateTime.now().millisecondsSinceEpoch;
-      final id = '$time${Random(time).nextInt(10000)}';
-
-      // 计算文本尺寸，与 ZeroPaddingTextfield 保持一致
-      final textStyle = TextStyle(
-        color: Colors.black, // 颜色不重要，仅用于计算尺寸
-        fontSize: 16.0,
-        height: 1.0,
-      );
-      final textPainter = TextPainter(
-        text: TextSpan(text: text, style: textStyle),
-        textAlign: TextAlign.left,
-        textDirection: TextDirection.ltr,
-      );
-      textPainter.layout();
-      final textWidth = textPainter.width;
-      final textHeight = textPainter.height;
-
-      // 创建文本元素
-      final textElement = FreeformCanvasText(
-        id: id,
-        index: DateTime.now().millisecondsSinceEpoch.toString(),
-        x: textCanvasPosition!.dx,
-        y: textCanvasPosition!.dy,
-        width: textWidth,
-        height: textHeight,
-        angle: 0.0,
-        strokeColor: FreeformCanvasColor.black(),
-        backgroundColor: FreeformCanvasColor.transparent(),
-        fillStyle: 'solid',
-        strokeWidth: 1.0,
-        strokeStyle: 'solid',
-        roughness: 0.0,
-        opacity: 100.0,
-        locked: false,
-        groupIds: [],
-        frameId: null,
-        boundElements: null,
-        link: null,
-        version: null,
-        versionNonce: null,
-        seed: null,
-        updated: null,
-        text: text,
-        originalText: text,
-        fontSize: 16.0, // 与 ZeroPaddingTextfield 一致
-        fontFamily: 1, // TODO: 字体映射
-        textAlign: 'left',
-        verticalAlign: 'top',
-        lineHeight: 1.0, // 与 ZeroPaddingTextfield 的 height: 1.0 对应
-        autoResize: false,
-        containerId: null,
-      );
-
-      return textElement;
+  void quitTextEdit(EditorState editorState){
+    if(__textEditData==null) return;
+    //Save the element
+    if(__textEditData!.isVirtual){
+      editorState.commitIntent(ElementCreateIntent(element: __textEditData!.behalfElement));
+    }else if(__textEditData!.behalfElement.text.trim()!=''){
+      editorState.commitIntent(TextUpdateIntent(updatedElement: __textEditData!.behalfElement));
     }
-    return null;
+    //Clear the data
+    _textEditData = null;
+    notify();
   }
 
-  void setValue(TextEditingController textController,Offset textCanvasPosition){
-    clear();
-    _textController = textController;
-    _textCanvasPosition = textCanvasPosition;
-    notifyListeners();
-  }
-
-  void clear(){
-    _textController?.dispose();
-    _textController = null;
-    _textCanvasPosition = null;
-    notifyListeners();
+  @override
+  void dispose(){
+    super.dispose();
+    _textEditData = null;
   }
 }
+
 ///**ZH** 管理与通知编辑操作数据
 ///
 ///**EN** Manage and notify edit operation data

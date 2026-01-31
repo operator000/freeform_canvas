@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
-import 'package:freeform_canvas/core/edit_intent_and_session/foundamental.dart';
+import 'package:freeform_canvas/core/edit_intent_and_session/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
+import 'package:freeform_canvas/hit_testers/extended_hit_tester.dart';
 import 'package:freeform_canvas/models/element_style.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
@@ -57,47 +58,51 @@ class DragEditAction extends EditAction{
   }
 }
 
-///元素矩形缩放
-///Element rectangle scaling
-class RectScaleElementIntent extends EditIntent{
+///元素手柄缩放
+///Element handle scaling
+class HandleScaleElementIntent extends EditIntent{
   final String elementId;
-  final Rect startRect;
-  final Rect endRect;
+  final ResizeHandle startHandle;
+  final Offset offset;
 
-  RectScaleElementIntent({required this.elementId, required this.startRect, required this.endRect});
+  HandleScaleElementIntent({
+    required this.elementId,
+    required this.startHandle,
+    required this.offset
+  });
   
   @override
   EditAction generateAction(EditorState editorState) {
-    return RectScaleElementAction(
+    return HandleScaleElementAction(
       elementId: elementId, 
-      startRect: startRect, 
-      endRect: endRect, 
+      startHandle: startHandle,
+      offset: offset,
       oldElement: FreeformCanvasFileOps.findElement(editorState.file!, elementId)!
     );
   }
 }
-class RectScaleElementAction extends EditAction{
+class HandleScaleElementAction extends EditAction{
   final String elementId;
-  final Rect startRect;
-  final Rect endRect;
+  final ResizeHandle startHandle;
+  final Offset offset;
   final FreeformCanvasElement oldElement;
 
-  RectScaleElementAction({
+  HandleScaleElementAction({
     required this.elementId, 
-    required this.startRect, 
-    required this.endRect,
+    required this.startHandle,
+    required this.offset,
     required this.oldElement
   });
   
   @override
   void commit(EditorState editorState,var modifyFile) {
     modifyFile(FreeformCanvasFileOps.updateElement(
-      editorState.file!, 
-      elementId, 
-      (e)=>ElementOps.rectScaleElement(
-        e, 
-        startRect, 
-        endRect,
+      editorState.file!,
+      elementId,
+      (_)=>ElementOps.handleScaleElement(
+        oldElement,
+        startHandle,
+        offset,
       )
     ));
   }
@@ -276,5 +281,33 @@ class MoveZOrderAction extends EditAction{
   @override
   void inverse(EditorState editorState,var modifyFile) {
     modifyFile(FreeformCanvasFileOps.moveZOrder(editorState.file!, id, index: originalZOrder));
+  }
+}
+///修改文本元素
+///Modify text element
+class TextUpdateIntent extends EditIntent{
+  final FreeformCanvasText updatedElement;
+  TextUpdateIntent({required this.updatedElement});
+  
+  @override
+  EditAction generateAction(EditorState editorState) {
+    return TextUpdateAction(
+      updatedElement: updatedElement,
+      oldElement: FreeformCanvasFileOps.findElement(editorState.file!, updatedElement.id)! as FreeformCanvasText,
+    );
+  }
+}
+class TextUpdateAction extends EditAction{
+  final FreeformCanvasText updatedElement;
+  final FreeformCanvasText oldElement;
+  TextUpdateAction({required this.updatedElement,required this.oldElement});
+  
+  @override
+  void commit(EditorState editorState,var modifyFile) {
+    modifyFile(FreeformCanvasFileOps.updateElement(editorState.file!, updatedElement.id, (_)=>updatedElement));
+  }
+  @override
+  void inverse(EditorState editorState,var modifyFile) {
+    modifyFile(FreeformCanvasFileOps.updateElement(editorState.file!, oldElement.id, (_)=>oldElement));
   }
 }

@@ -1,22 +1,24 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:freeform_canvas/core/editor_state.dart';
+import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 
 import '../models/freeform_canvas_element.dart';
 
 class FreeformCanvasPainter extends CustomPainter {
   int dirty;
   final List<FreeformCanvasElement> elements;
+  final FreeformCanvasAppState appState;
   final Color? backgroundColor;
   final String? draftId;
-  final double scale;
-  final Offset pan;
+  final EditorState editorState;
 
   FreeformCanvasPainter({
     required this.dirty,
     required this.elements,
-    this.scale = 1,
-    this.pan = Offset.zero,
+    required this.appState,
+    required this.editorState,
     this.backgroundColor,
     this.draftId,
   });
@@ -32,12 +34,12 @@ class FreeformCanvasPainter extends CustomPainter {
 
     canvas.save();
 
-    canvas.scale(scale, scale);
-    canvas.translate(pan.dx, pan.dy);
+    canvas.scale(editorState.scale, editorState.scale);
+    canvas.translate(editorState.pan.dx, editorState.pan.dy);
 
-    drawGrid(canvas: canvas, size: size, gridSize: 20, gridStep: 5, scale: scale,pan: pan);
+    drawGrid(canvas: canvas, size: size, appState: appState, scale: editorState.scale,pan: editorState.pan);
     for (final element in elements) {
-      if(element.id!=draftId){
+      if(element.id!=draftId&&element.id != editorState.textEditorState.textEditData?.behalfElement.id){
         drawElement(canvas, element);
       }
     }
@@ -925,14 +927,14 @@ TextAlign _parseTextAlign(String align) {
 void drawGrid({
   required Canvas canvas,
   required Size size,
-  required double gridSize,
-  required double gridStep,
+  required FreeformCanvasAppState appState,
   required double scale,
   required Offset pan,
 }) {
-  assert(gridSize % gridStep == 0);
-  gridSize*=5;
-  gridStep*=5;
+  if(appState.gridModeEnabled==false) return;
+
+  int gridSize = appState.gridSize*5;
+  int gridStep = appState.gridStep*5;
 
   const double kMinFineGridPixelSpacing = 8.0;
   final bool drawFineGrid = gridStep * scale >= kMinFineGridPixelSpacing;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:freeform_canvas/application/canvas_renderer.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
-import 'package:freeform_canvas/core/edit_intent_and_session/foundamental.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
+import 'package:freeform_canvas/application/renderers/text_edit_widget.dart';
+import 'package:freeform_canvas/core/edit_intent_and_session/fundamental.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/intents.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
@@ -26,7 +26,7 @@ class EInkScreenRenderer extends Renderer{
   
   @override
   Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextfieldWidget(editorState: editorState);
+    return TextEditWidget(editorState: editorState);
   }
 }
 
@@ -67,6 +67,7 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     widget.editorState.transformState.addListener(transformUpdater);
     widget.editorState.draftState.addListener(draftUpdater);
     widget.editorState.actionState.addListener(actionUpdater);
+    widget.editorState.textEditorState.addListener(textEditUpdater);
     //First update
     if(widget.editorState.file!=null){
       WidgetsBinding.instance.addPostFrameCallback((_){
@@ -81,6 +82,7 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     widget.editorState.transformState.removeListener(transformUpdater);
     widget.editorState.draftState.removeListener(draftUpdater);
     widget.editorState.actionState.removeListener(actionUpdater);
+    widget.editorState.textEditorState.removeListener(textEditUpdater);
   }
 
   //Callbacks:
@@ -93,6 +95,7 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     if(action is ElementCreateAction){
       //For element creation, add it directly to the bitmap
       addElementToBitmap(action.element);
+      setState(() {});
     }else{
       rebuildBitmap();
       setState(() {});
@@ -121,6 +124,11 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     lastDraftId = newDraftId;
   }
 
+  void textEditUpdater(){
+    rebuildBitmap();
+    setState(() {});
+  }
+
   //Bitmap operations:
 
   void rebuildBitmap(){
@@ -135,9 +143,11 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     final pan = widget.editorState.pan;
     canvas.scale(scale, scale);
     canvas.translate(pan.dx, pan.dy);
-    drawGrid(canvas: canvas, size: widget.size, gridSize: 20, gridStep: 5, scale: scale,pan: pan);
+    canvas.drawColor(widget.editorState.file!.appState.viewBackgroundColor, BlendMode.src);
+    drawGrid(canvas: canvas, size: widget.size, appState:widget.editorState.file!.appState, scale: scale,pan: pan);
     for (final element in widget.editorState.file!.elements) {
-      if(element.id!=widget.editorState.draftState.draftId){
+      if(element.id!=widget.editorState.draftState.draftId 
+        && element.id!=widget.editorState.textEditorState.textEditData?.behalfElement.id){
         drawElement(canvas, element);
       }
     }
@@ -202,12 +212,15 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
   @override
   Widget build(BuildContext context) {
     return SizedBox.expand(
-      child: RepaintBoundary(
-        child: RawImage(
-          image: _mainBitmap,
-          scale: 1,
-        ),
-      ),
+      child: OrientationBuilder(builder: (_,_){
+        rebuildBitmap();
+        return RepaintBoundary(
+          child: RawImage(
+            image: _mainBitmap,
+            scale: 1,
+          ),
+        );
+      }),
     );
   }
 }

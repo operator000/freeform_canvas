@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:freeform_canvas/application/foundamental.dart';
+import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
 import 'package:freeform_canvas/interaction_handlers/interaction_handler.dart';
@@ -33,7 +33,12 @@ class MouseKeyboardInteractorWidget extends StatefulWidget{
 }
 
 class _MouseKeyboardInteractorWidgetState extends State<MouseKeyboardInteractorWidget> {
-  InteractionHandler? currentController;
+  InteractionHandler? currentHandler;
+  // 判断双击
+  // Used to detect double tap
+  Offset lastPointerDownOffset = Offset.zero;
+  Offset lastPointerUpOffset = Offset.zero;
+  int lastPointerUpTimestamp = 0;
 
   @override
   void initState() {
@@ -154,9 +159,9 @@ class _MouseKeyboardInteractorWidgetState extends State<MouseKeyboardInteractorW
   }
 
   void _handlePanZoomStart(PointerPanZoomStartEvent event){
-    currentController = TransformHandler();
+    currentHandler = TransformHandler();
     final iEvent = InputStartEvent(localPoint: event.localPosition);
-    currentController?.onScaleStart(iEvent, widget.editorState);
+    currentHandler?.onScaleStart(iEvent, widget.editorState);
   }
 
   void _handlePanZoomUpdate(PointerPanZoomUpdateEvent event){
@@ -165,45 +170,54 @@ class _MouseKeyboardInteractorWidgetState extends State<MouseKeyboardInteractorW
       panDelta: event.panDelta, 
       scale: event.scale
     );
-    currentController?.onScaleUpdate(iEvent, widget.editorState);
+    currentHandler?.onScaleUpdate(iEvent, widget.editorState);
   }
 
   void _handlePanZoomEnd(PointerPanZoomEndEvent event){
-    currentController?.onScaleEnd(InputEndEvent(), widget.editorState);
+    currentHandler?.onScaleEnd(InputEndEvent(), widget.editorState);
   }
 
+  bool _approximateEqual(Offset a, Offset b) => (a.dx - b.dx).abs() < 0.1 && (a.dy - b.dy).abs() < 0.1;
+
   void _handlePointerDown(PointerDownEvent event) {
-    if(HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.space)
-      || (event.buttons&kMiddleMouseButton)!=0
-    ){
+    if(_approximateEqual(lastPointerDownOffset, event.localPosition)
+      &&_approximateEqual(lastPointerUpOffset, event.localPosition)){
+      if(DateTime.now().millisecondsSinceEpoch-lastPointerUpTimestamp < 200){
+        //Trigger double click
+        currentHandler = TextEditHandler();
+      }
+    }else if(HardwareKeyboard.instance.isLogicalKeyPressed(LogicalKeyboardKey.space)
+      || (event.buttons&kMiddleMouseButton)!=0 ){
       //Middle mouse button or space + left mouse button: Drag the canvas
-      currentController = TransformHandler();
+      currentHandler = TransformHandler();
     }else{
       switch(widget.editorState.toolState.currentTool){
         case EditorTool.drag:
-          currentController = TransformHandler();
+          currentHandler = TransformHandler();
         case EditorTool.select:
-          currentController = SelectHandler();
+          currentHandler = SelectHandler();
         case EditorTool.rectangle:
-          currentController = TwoPointCreationHandler(type: FreeformCanvasElementType.rectangle);
+          currentHandler = TwoPointCreationHandler(type: FreeformCanvasElementType.rectangle);
         case EditorTool.diamond:
-          currentController = TwoPointCreationHandler(type: FreeformCanvasElementType.diamond);
+          currentHandler = TwoPointCreationHandler(type: FreeformCanvasElementType.diamond);
         case EditorTool.ellipse:
-          currentController = TwoPointCreationHandler(type: FreeformCanvasElementType.ellipse);
+          currentHandler = TwoPointCreationHandler(type: FreeformCanvasElementType.ellipse);
         case EditorTool.line:
-          currentController = TwoPointCreationHandler(type: FreeformCanvasElementType.line);
+          currentHandler = TwoPointCreationHandler(type: FreeformCanvasElementType.line);
         case EditorTool.arrow:
-          currentController = TwoPointCreationHandler(type: FreeformCanvasElementType.arrow);
+          currentHandler = TwoPointCreationHandler(type: FreeformCanvasElementType.arrow);
         case EditorTool.freedraw:
-          currentController = FreeDrawHandler();
+          currentHandler = FreeDrawHandler();
         case EditorTool.text:
-          currentController = TextCreateHandler();
+          currentHandler = TextEditHandler();
         case EditorTool.eraser:
-          currentController = EraserHandler();
+          currentHandler = EraserHandler();
       }
     }
+
+    lastPointerDownOffset = event.localPosition;
     final iEvent = InputStartEvent(localPoint: event.localPosition);
-    currentController?.onScaleStart(iEvent, widget.editorState);
+    currentHandler?.onScaleStart(iEvent, widget.editorState);
   }
 
   void _handlePointerMove(PointerMoveEvent event) {
@@ -212,11 +226,18 @@ class _MouseKeyboardInteractorWidgetState extends State<MouseKeyboardInteractorW
       panDelta: event.delta, 
       scale: 1
     );
-    currentController?.onScaleUpdate(iEvent, widget.editorState);
+    currentHandler?.onScaleUpdate(iEvent, widget.editorState);
   }
 
   void _handlePointerUp(PointerUpEvent event) {
-    currentController?.onScaleEnd(InputEndEvent(), widget.editorState);
-    currentController = null;
+    lastPointerUpOffset = event.localPosition;
+    currentHandler?.onScaleEnd(InputEndEvent(), widget.editorState);
+    currentHandler = null;
+
+    print('[debug]lDown=$lastPointerDownOffset; lUp=$lastPointerUpOffset');
+    if(_approximateEqual(lastPointerDownOffset, lastPointerUpOffset)){
+      lastPointerUpTimestamp = DateTime.now().millisecondsSinceEpoch;
+      print('[debug]upTimestamp=$lastPointerUpTimestamp');
+    }
   }
 }

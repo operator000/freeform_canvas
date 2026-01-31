@@ -1,14 +1,15 @@
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
-import 'package:freeform_canvas/extended_hit_tester.dart';
-import 'package:freeform_canvas/freeform_canvas_hit_tester.dart';
-import 'package:freeform_canvas/core/edit_intent_and_session/foundamental.dart';
+import 'package:freeform_canvas/hit_testers/extended_hit_tester.dart';
+import 'package:freeform_canvas/hit_testers/freeform_canvas_hit_tester.dart';
+import 'package:freeform_canvas/core/edit_intent_and_session/fundamental.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/intents.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
+import 'package:freeform_canvas/models/text_editing_data.dart';
 import 'package:freeform_canvas/ops/element_ops.dart';
-import 'package:freeform_canvas/painters/element_geomatry.dart';
+import 'package:freeform_canvas/painters/element_geometry.dart';
 ///拖动元素
 ///Drag element
 class ElementDragSession extends EditSession{
@@ -54,13 +55,12 @@ class ElementDragSession extends EditSession{
 }
 ///缩放元素
 ///Scale element
-class RectResizeSession extends EditSession{
+class HandleResizeSession extends EditSession{
   final EditorState editorState;
   final ResizeHandle resizeHandle;
-  RectResizeSession({required this.resizeHandle,required this.editorState});
+  HandleResizeSession({required this.resizeHandle,required this.editorState});
 
   late Rect resizeStartRect;
-  late Rect resizeLastRect;
   late String elementId;
   FreeformCanvasElement? resizeStartElement;
   Offset resizeDelta = Offset.zero;
@@ -69,8 +69,7 @@ class RectResizeSession extends EditSession{
   void onStart(Offset canvasPoint) {
     elementId = editorState.focusState.focusElementId!;
     editorState.ensurePreviewFor(elementId);
-    resizeStartRect = ElementGeomatry.resizeHandlePosition(editorState.focusedElement!);
-    resizeLastRect = resizeStartRect;
+    resizeStartRect = ElementGeometry.resizeHandlePosition(editorState.focusedElement!);
     resizeStartElement = editorState.focusedElement;
     startPoint = canvasPoint;
   }
@@ -78,50 +77,21 @@ class RectResizeSession extends EditSession{
   void onUpdate(Offset canvasDelta) {
     //计算缩放量
     resizeDelta += canvasDelta;
-    switch(resizeHandle){
-      case ResizeHandle.tl:
-        resizeLastRect = Rect.fromLTRB(
-          resizeStartRect.left + resizeDelta.dx, 
-          resizeStartRect.top + resizeDelta.dy, 
-          resizeStartRect.right, 
-          resizeStartRect.bottom,
-        );
-      case ResizeHandle.tr:
-        resizeLastRect = Rect.fromLTRB(
-          resizeStartRect.left, 
-          resizeStartRect.top + resizeDelta.dy, 
-          resizeStartRect.right + resizeDelta.dx, 
-          resizeStartRect.bottom,
-        );
-      case ResizeHandle.bl:
-        resizeLastRect = Rect.fromLTRB(
-          resizeStartRect.left + resizeDelta.dx, 
-          resizeStartRect.top, 
-          resizeStartRect.right, 
-          resizeStartRect.bottom + resizeDelta.dy,
-        );
-      case ResizeHandle.br:
-        resizeLastRect = Rect.fromLTRB(
-          resizeStartRect.left, 
-          resizeStartRect.top, 
-          resizeStartRect.right + resizeDelta.dx, 
-          resizeStartRect.bottom + resizeDelta.dy,
-        );
-    }
+
     editorState.updatePreview(
-      (_)=>ElementOps.rectScaleElement(
-        resizeStartElement!, 
-        resizeStartRect, 
-        resizeLastRect,
+      (_)=>ElementOps.handleScaleElement(
+        resizeStartElement!,
+        resizeHandle,
+        resizeDelta
       )
     );
   }
 
   void onEnd() {
-    editorState.commitIntent(RectScaleElementIntent(
+    editorState.commitIntent(HandleScaleElementIntent(
       elementId: elementId, 
-      startRect: resizeStartRect, 
-      endRect: resizeLastRect,
+      startHandle: resizeHandle,
+      offset: resizeDelta
     ));
     editorState.quitPreview();
   }
@@ -134,7 +104,7 @@ class RotateSession extends EditSession{
   late double latestAngle;
   void onStart(Offset canvasPoint, EditorState editorState) {
     if(!editorState.focusState.isFocusOnElement) return;
-    elementCenter = ElementGeomatry.center(editorState.focusedElement!);
+    elementCenter = ElementGeometry.center(editorState.focusedElement!);
     final offset = canvasPoint - elementCenter;
     startAngle = atan2(offset.dy, offset.dx);
     latestAngle = startAngle;
@@ -269,6 +239,18 @@ class EraserSession extends EditSession{
     final elementHitTest = FreeformCanvasHitTester.hitTest(canvasPoint, editorState.file!.elements);
     if(elementHitTest!=null){
       editorState.commitIntent(ElementDeleteIntent(id: elementHitTest.elementId));
+    }
+  }
+}
+///文本编辑。文本编辑操作为长线操作，尽管本Session仅处理触发。
+///Text editing. Text editing operations are long-line operations, even though this Session only handles triggering.
+class TextEditSession extends EditSession{
+  void onTrigger(Offset canvasPoint, EditorState editorState) {
+    final focusedElement = editorState.focusedElement;
+    if(focusedElement==null){
+      editorState.enterTextEdit(TextEditData.newText(textCanvasPosition: canvasPoint, textColor: null));
+    }else if(focusedElement is FreeformCanvasText){
+      editorState.enterTextEdit(TextEditData.fromElement(element: focusedElement));
     }
   }
 }

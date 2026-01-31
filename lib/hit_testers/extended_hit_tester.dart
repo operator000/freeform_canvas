@@ -1,7 +1,7 @@
 import 'dart:ui';
-import 'package:freeform_canvas/freeform_canvas_hit_tester.dart';
+import 'package:freeform_canvas/hit_testers/freeform_canvas_hit_tester.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
-import 'package:freeform_canvas/painters/element_geomatry.dart';
+import 'package:freeform_canvas/painters/element_geometry.dart';
 
 ///**ZH** 命中内容的类型
 ///
@@ -54,12 +54,13 @@ class ExtendedHitTester {
     Offset worldPoint,
     List<FreeformCanvasElement> elements,
     String? focusedElementId,
+    double scale,
   ){
     //仅对选中元素的控制手柄做测试
     if(focusedElementId!=null){
       for(var element in elements){
         if(element.id==focusedElementId){
-          final handleHitResult = _singleEleResizeHandleHitTest(worldPoint, element);
+          final handleHitResult = _singleEleResizeHandleHitTest(worldPoint, element,scale);
           if(handleHitResult!=null){
             //命中缩放手柄
             return ExtendedHitTestResult(
@@ -96,30 +97,30 @@ class ExtendedHitTester {
   }
 
   ///计算是否命中缩放手柄
-  static ResizeHandle? _singleEleResizeHandleHitTest(Offset canvasPoint,FreeformCanvasElement element){
-    final rect = ElementGeomatry.resizeHandlePosition(element);
-    if(_singleResizeHandleHitTest(canvasPoint, rect.topLeft)){
+  static ResizeHandle? _singleEleResizeHandleHitTest(Offset canvasPoint,FreeformCanvasElement element,double scale){
+    final rect = ElementGeometry.resizeHandlePosition(element);
+    if(_singleResizeHandleHitTest(canvasPoint, rect.topLeft,scale)){
       return ResizeHandle.tl;
     }else 
-    if(_singleResizeHandleHitTest(canvasPoint, rect.topRight)){
+    if(_singleResizeHandleHitTest(canvasPoint, rect.topRight,scale)){
       return ResizeHandle.tr;
     }else 
-    if(_singleResizeHandleHitTest(canvasPoint, rect.bottomLeft)){
+    if(_singleResizeHandleHitTest(canvasPoint, rect.bottomLeft,scale)){
       return ResizeHandle.bl;
     }else 
-    if(_singleResizeHandleHitTest(canvasPoint, rect.bottomRight)){
+    if(_singleResizeHandleHitTest(canvasPoint, rect.bottomRight,scale)){
       return ResizeHandle.br;
     }else{
       return null;
     }
   }
-  static bool _singleResizeHandleHitTest(Offset canvasPoint,Offset center){
-    return ElementGeomatry.resizeHandleRect(center).contains(canvasPoint);
+  static bool _singleResizeHandleHitTest(Offset canvasPoint,Offset center,double scale){
+    return ElementGeometry.resizeHandleRect(center,scale).contains(canvasPoint);
   }
   ///计算是否命中旋转手柄
   static bool _singleEleRotateHandleHitTest(Offset worldPoint,FreeformCanvasElement element){
-    final center = ElementGeomatry.rotateHandlePosition(element);
-    return (worldPoint - center).distanceSquared <= ElementGeomatry.rotateHandleRadius;
+    final center = ElementGeometry.rotateHandlePosition(element);
+    return (worldPoint - center).distanceSquared <= ElementGeometry.rotateHandleRadius;
   }
 }
 

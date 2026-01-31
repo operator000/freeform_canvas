@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:freeform_canvas/core/edit_intent_and_session/edit_sessions.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
-import 'package:freeform_canvas/interaction_handlers/element_edit/element_edit_controller.dart';
+import 'package:freeform_canvas/interaction_handlers/secondary_handlers/element_edit_secondary_handler.dart';
 
-class RotateEditController extends ElementEditController{
+class RotateEditSecondaryHandler extends InteractionSecondaryHandler{
   final session = RotateSession();
   @override
   void onPanStart(Offset canvasPoint, EditorState editorState) {

@@ -43,6 +43,7 @@ class FreeformCanvasFileOps {
 
     final newElement = ElementOps.copyWith(
       element,
+      id: element.id==''?DateTime.now().millisecondsSinceEpoch.toString():element.id,
       index:newIndex,
       updated: DateTime.now().millisecondsSinceEpoch,
     );
@@ -190,6 +191,19 @@ class FreeformCanvasFileOps {
     }on StateError catch(_){
       return null;
     }
+  }
+  ///**ZH** 创建一个空文件
+  ///
+  ///**EN** Create an empty file
+  static FreeformCanvasFile emptyFile(){
+    return FreeformCanvasFile(
+      type: 'excalidraw',
+      version: 2,
+      source: 'https://excalidraw.com',
+      elements: [],
+      appState: FreeformCanvasAppState.std(),
+      files: {},
+    );
   }
 }
 
