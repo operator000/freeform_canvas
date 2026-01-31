@@ -79,6 +79,21 @@ For a detailed introduction to the editor source code, including the editor comp
 
 This documentation can also serve as a reference for coding agents during development.
 
-## Project Status
-This is a personal project primarily built for my own use.  
-Development is irregular, and the API is not guaranteed to be stable.
+## Status & Contributing
+This project is primarily built to meet my own use cases and may not be actively maintained as a long-term product.
+
+That said, a key goal of **freeform_canvas** is to explore a highly extensible editor architecture, especially for diverse interaction scenarios (mouse, touch, stylus, e-ink, etc.).
+
+Even if the core feature set remains relatively stable, the architecture is intentionally designed to be open to extension.
+I believe there are many interesting directions this editor could grow into through different interaction models, renderers, or platform adaptations.
+
+Contributions, experiments, and forks are all welcome.
+If you implement new features or extensions that might be useful beyond your own use case, you are encouraged to consider contributing them back via pull requests.
+
+Contributions of all kinds are very welcome — including bug fixes, refactors, performance improvements, documentation, and new features.
+
+If you plan to fork this project to add your own features or platform-specific support, you are highly encouraged to consider contributing those improvements back via pull requests.  
+Even partial or experimental implementations are welcome, as long as they help move the project forward.
+
+I believe this project can grow better through shared ideas and collaboration.
+If you are interested, feel free to open an issue, start a discussion, or submit a PR.
