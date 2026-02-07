@@ -889,6 +889,10 @@ class ElementGeometry {
     required String verticalAlign,
     required double lineHeight,
   })
+  ///**ZH** 计算元素列表的边界，canvas坐标系
+  ///
+  ///**EN** Calculate the boundary of the element list in the canvas coordinate system
+  static Rect calculateBoundary(List<FreeformCanvasElement> elements)
 }
 ```
 ## Hit Testing

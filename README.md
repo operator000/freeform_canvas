@@ -5,29 +5,30 @@
 ![GitHub stars](https://img.shields.io/github/stars/operator000/freeform_canvas?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/operator000/freeform_canvas?style=social)
 
-**Read this in other languages:** [English](README_en.md) | [中文](README.md)
+**Read this in other languages:** [English](README.md) | [中文](README_ZH.md)
 
-## 项目介绍
-本项目
-freeform_canvas 是一个 **类 Excalidraw 白板编辑器**，旨在提供一个兼容 Excalidraw 的 flutter 白板编辑器架构，更关注可扩展性而非1：1复刻。
+## Project Overview
 
-*注意：本项目并非 Excalidraw 官方项目，不使用、也不包含 Excalidraw 的任何源码*
+freeform_canvas is an **Excalidraw-like whiteboard editor** built with Flutter.  
+It aims to provide an Excalidraw-compatible whiteboard editor architecture, with a stronger focus on extensibility rather than 1:1 replication.
 
-freeform_canvas 的核心特征包括：
+*Note: This project is not an official Excalidraw project and does not use or include any Excalidraw source code.*
 
-* Single Source of Truth（SSOT）架构（EditorState 作为唯一状态源）
-* 支持丰富元素的创建、编辑，支持undo/redo
-* 支持电脑桌面、墨水屏平板、平板、手机等多种交互方式，并可重写交互类
-* 编辑器具有插件式结构，渲染器、交互器、覆盖层可分别自定义
-* 支持`.excalidraw`文件格式的多数字段
+The core features of freeform_canvas include:
 
-设计目标之一是：
+* Single Source of Truth (SSOT) architecture (EditorState as the single source of state)
+* Support for creating and editing rich elements, with undo / redo support
+* Support for multiple interaction modes, including desktop, e-ink tablets, tablets, and mobile devices, with customizable interaction handlers
+* A plugin-based editor architecture, allowing renderers, interactors, and overlay layers to be customized independently
+* Support for most fields of the `.excalidraw` file format
 
-> **还原诸多 Excalidraw 的编辑行为、支持.excalidraw文件，适配墨水屏、电脑桌面、手机桌面、平板等诸多交互风格，同时保持系统极高的可拓展、可定制。**
+One of the design goals is:
 
-## 快速开始
+> **To restore many of Excalidraw’s editing behaviors, support the `.excalidraw` file format, adapt to diverse interaction styles such as e-ink tablets, desktop, mobile, and tablets, while maintaining a highly extensible and customizable system.**
 
-在pubspec.yaml添加内容如下
+## Quick Start
+
+Add following contents to pubspec.yaml:
 ```yaml
 dependencies:
   freeform_canvas:
@@ -41,9 +42,9 @@ flutter:
         - asset: packages/freeform_canvas/fonts/freeform_canvas_icons.ttf
 ```
 
-本项目提供“两个”编辑器：
-- 一个专为电脑桌面、键鼠交互设计
-- 一个专为墨水屏、触控笔交互设计
+This project provides “two” editors:
+- One designed specifically for desktop environments with keyboard and mouse interaction
+- One designed specifically for e-ink devices with stylus interaction
 
 ```dart
 WindowsFreeformCanvas(
@@ -61,32 +62,49 @@ EInkFreeformCanvas(
     },
 )
 ```
-之所以称之为“两个”，是因为编辑器架构是插件式的，上述两个编辑器核心相同，但交互逻辑和渲染逻辑完全不同。
+They are referred to as “two” editors because the editor architecture is plugin-based.
+The two editors share the same core, but differ entirely in their interaction logic and rendering logic.
 
-在`example\lib\main.dart`还有一个完整的flutter app，内嵌一个示例.excalidraw文件，可以直接在Windows上运行并体验编辑器效果。
+A complete Flutter app example is available in `example\lib\main.dart`, which embeds a sample .excalidraw file.
+You can run it on Windows directly to experience the editor.
 
 ![example app](image.png)
 
-对于适配墨水屏的编辑器，其运行效果如下：
+For the editor designed for E-ink devices, it looks like this:
 
 <img src="image2.png" style="max-width:  90vmin;max-height: 90vmin;"></img>
 
-## 详细文档
-编辑器源码的详细介绍，如编辑器组件架构、编辑操作信息流，参阅[中文文档](docs/DOCUMENT_ZH.md)或[英文文档](docs/DOCUMENT_EN.md)。
+There's a pure file_rendering method, with a signature below:
 
-该文档在开发中也可以作为编码agent的参考文档。
+File `lib\pure_renderer.dart`：
+```dart
+Future<ui.Image> renderFile({
+  String? jsonString,
+  File? file,
+  required double Function(ui.Rect rect) scaleCalculator,
+});
+```
+
+## Documentation
+For a detailed introduction to the editor source code, including the editor component architecture and the flow of editing operations, please refer to the [Chinese documentation](docs/DOCUMENT_ZH.md) or the [English documentation](docs/DOCUMENT_EN.md).
+
+This documentation can also serve as a reference for coding agents during development.
 
 ## Status & Contributing
-本项目主要是为了满足我个人的实际使用需求而构建的，因此不一定会被作为一个长期、持续迭代的产品来维护。
+This project is primarily built to meet my own use cases and may not be actively maintained as a long-term product.
 
-不过，**freeform_canvas** 的一个核心目标，是探索一种在多种交互场景下高度可扩展的编辑器架构（例如键鼠、触控、手写笔、墨水屏等）。
-即使核心功能在未来保持相对稳定，编辑器的整体设计仍然是为扩展性而刻意构建的。
+That said, a key goal of **freeform_canvas** is to explore a highly extensible editor architecture, especially for diverse interaction scenarios (mouse, touch, stylus, e-ink, etc.).
 
-我相信在不同交互模型、渲染方式或平台适配方面，这个编辑器仍然有很多值得探索和扩展的方向。
+Even if the core feature set remains relatively stable, the architecture is intentionally designed to be open to extension.
+I believe there are many interesting directions this editor could grow into through different interaction models, renderers, or platform adaptations.
 
-非常欢迎任何形式的贡献，包括但不限于：功能补充、Bug 修复、结构重构、性能优化以及文档改进。
+Contributions, experiments, and forks are all welcome.
+If you implement new features or extensions that might be useful beyond your own use case, you are encouraged to consider contributing them back via pull requests.
 
-如果你 fork 了本项目并实现了新的功能（例如新的交互方式、平台适配或编辑能力），也非常欢迎你考虑通过 Pull Request 的方式将这些改进贡献回来。  
-即使是阶段性、实验性的实现，也同样值得交流和讨论。
+Contributions of all kinds are very welcome — including bug fixes, refactors, performance improvements, documentation, and new features.
 
-我相信这个项目可以通过开放的讨论和协作变得更好，欢迎随时提出 issue、讨论或 PR。
+If you plan to fork this project to add your own features or platform-specific support, you are highly encouraged to consider contributing those improvements back via pull requests.  
+Even partial or experimental implementations are welcome, as long as they help move the project forward.
+
+I believe this project can grow better through shared ideas and collaboration.
+If you are interested, feel free to open an issue, start a discussion, or submit a PR.

@@ -127,4 +127,21 @@ class ElementGeometry {
     textPainter.layout();
     return (textPainter.width, textPainter.height);
   }
+  ///**ZH** 计算元素列表的边界，canvas坐标系
+  ///
+  ///**EN** Calculate the boundary of the element list in the canvas coordinate system
+  static Rect calculateBoundary(List<FreeformCanvasElement> elements){
+    double left = 0;
+    double top = 0;
+    double right = 0;
+    double bottom = 0;
+    for (final element in elements) {
+      final rect = ElementGeometry.border(element);
+      left = min(left, rect.left);
+      top = min(top, rect.top);
+      right = max(right, rect.right);
+      bottom = max(bottom, rect.bottom);
+    }
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
 }
