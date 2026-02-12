@@ -65,7 +65,7 @@ class _StaticLayerRendererWidgetState extends State<StaticLayerRendererWidget> {
             elements: file.elements,
             appState: file.appState,
             editorState: widget.editorState,
-            backgroundColor: file.appState.viewBackgroundColor,
+            backgroundColor: file.appState.viewBackgroundColor.color,
             draftId: widget.editorState.draftState.draftId,
           ),
         ),

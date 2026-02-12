@@ -27,7 +27,7 @@ Future<ui.Image> renderFile({
   canvas.scale(scale, scale);
   canvas.translate(-rect.left, -rect.top);
 
-  canvas.drawColor(_file.appState.viewBackgroundColor, ui.BlendMode.src);
+  canvas.drawColor(_file.appState.viewBackgroundColor.color, ui.BlendMode.src);
   for (final element in _file.elements) {
     drawElement(canvas, element);
   }

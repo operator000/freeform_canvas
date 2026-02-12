@@ -61,7 +61,7 @@ class FreeformCanvasFile {
 ///
 /// 包含背景色、网格等全局设置
 class FreeformCanvasAppState {
-  final Color viewBackgroundColor;
+  final FreeformCanvasColor viewBackgroundColor;
   final int gridSize;
   final int gridStep;
   final bool gridModeEnabled;
@@ -77,7 +77,7 @@ class FreeformCanvasAppState {
 
   factory FreeformCanvasAppState.std(){
     return FreeformCanvasAppState(
-      viewBackgroundColor: const Color.fromRGBO(255, 255, 255, 1),
+      viewBackgroundColor: FreeformCanvasColor.fromString('#ffffff'),
       gridSize: 20,
       gridStep: 5,
       gridModeEnabled: false,
@@ -87,7 +87,9 @@ class FreeformCanvasAppState {
 
   factory FreeformCanvasAppState.fromJson(Map<String, dynamic> json) {
     return FreeformCanvasAppState(
-      viewBackgroundColor: _parseColor(json['viewBackgroundColor'] as String?),
+      viewBackgroundColor: json['viewBackgroundColor']==null
+        ? FreeformCanvasColor.fromString('#ffffff') 
+        : FreeformCanvasColor.fromString(json['viewBackgroundColor'] as String),
       gridSize: json['gridSize'] as int,
       gridStep: json['gridStep'] as int,
       gridModeEnabled: json['gridModeEnabled'] as bool,
@@ -98,32 +100,11 @@ class FreeformCanvasAppState {
 
   Map<String, dynamic> toJson() {
     return {
-      'viewBackgroundColor': viewBackgroundColor,
+      'viewBackgroundColor': viewBackgroundColor.colorStr,
       'gridSize': gridSize,
       'gridStep': gridStep,
       'gridModeEnabled': gridModeEnabled,
       'lockedMultiSelections': lockedMultiSelections,
     };
   }
-}
-/// 解析颜色字符串
-Color _parseColor(String? colorStr) {
-  if (colorStr==null || colorStr == 'transparent') {
-    return Color(0x00ffffff);
-  }
-
-  // 移除 # 前缀
-  String hex = colorStr.startsWith('#') ? colorStr.substring(1) : colorStr;
-
-  // 处理 3 位简写格式
-  if (hex.length == 3) {
-    hex = hex.split('').map((c) => c * 2).join();
-  }
-
-  // 添加 alpha 通道（如果缺失）
-  if (hex.length == 6) {
-    hex = 'FF$hex';
-  }
-
-  return Color(int.parse(hex, radix: 16));
 }

@@ -143,7 +143,7 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     final pan = widget.editorState.pan;
     canvas.scale(scale, scale);
     canvas.translate(pan.dx, pan.dy);
-    canvas.drawColor(widget.editorState.file!.appState.viewBackgroundColor, BlendMode.src);
+    canvas.drawColor(widget.editorState.file!.appState.viewBackgroundColor.color, BlendMode.src);
     drawGrid(canvas: canvas, size: widget.size, appState:widget.editorState.file!.appState, scale: scale,pan: pan);
     for (final element in widget.editorState.file!.elements) {
       if(element.id!=widget.editorState.draftState.draftId 
