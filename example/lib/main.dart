@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:freeform_canvas/core/editor_state.dart';
+import 'package:freeform_canvas/freeform_canvas_parser.dart';
 import 'embedded_file.dart';
 import 'package:freeform_canvas/windows_freeform_canvas.dart';
 
@@ -14,6 +16,10 @@ class FreeformCanvasExampleApp extends StatefulWidget {
 }
 
 class _FreeformCanvasExampleAppState extends State<FreeformCanvasExampleApp> {
+  EditorState? editorState = EditorState(file: FreeformCanvasParser.parseFromString(EMBEDDED))
+    ..embeddableRenderer = (editor, width, height, screenPosition, element) {
+      print('embeddable renderer:$width $height $screenPosition');
+    };
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -25,7 +31,7 @@ class _FreeformCanvasExampleAppState extends State<FreeformCanvasExampleApp> {
       home: Scaffold(
         body: SafeArea(
           child: WindowsFreeformCanvas(
-            jsonString: EMBEDDED,
+            editorState: editorState,
             onSave: (file) {
               print('save...');
             },

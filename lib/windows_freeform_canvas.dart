@@ -3,6 +3,7 @@ import 'package:freeform_canvas/application/renderers/canvas_renderer.dart';
 import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/application/interactors/mouse_keyboard_interactor.dart';
 import 'package:freeform_canvas/application/freeform_canvas_viewer.dart';
+import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import 'package:freeform_canvas/overlays/windows_toolbar.dart';
 ///**ZH** 适配电脑桌面的画布编辑器组件，在 Windows11 上验证无误。
@@ -16,13 +17,18 @@ class WindowsFreeformCanvas extends StatefulWidget{
 
   final void Function(FreeformCanvasFile file)? onSave;
 
+  final EditorState? editorState;
+
   const WindowsFreeformCanvas({
     super.key, 
     this.file, 
     this.jsonString,
-    this.onSave
-  }) : assert(file != null || jsonString != null,
-            'Must provide file or jsonString');
+    this.onSave,
+    this.editorState
+  }) : assert(
+    (file==null ?1 :0) + (jsonString==null ?1 :0) + (editorState==null ?1 :0) == 2,
+    'Provide file or jsonString or provide editorState'
+  );
   @override
   State<WindowsFreeformCanvas> createState() => _WindowsFreeformCanvasState();
 }
@@ -43,6 +49,7 @@ class _WindowsFreeformCanvasState extends State<WindowsFreeformCanvas> {
     return FreeformCanvasViewer(
       file: file,
       jsonString: widget.jsonString,
+      editorState: widget.editorState,
       renderer: renderer,
       interactor: interactor,
       overlays: [

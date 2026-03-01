@@ -119,6 +119,8 @@ class FreeformCanvasHitTester {
         return _isPointInArrow(localPoint, element as FreeformCanvasArrow);
       case FreeformCanvasElementType.diamond:
         return _isPointInDiamond(localPoint, element as FreeformCanvasDiamond);
+      case FreeformCanvasElementType.embeddable:
+        return _isPointInEmbeddable(localPoint, element as FreeformCanvasEmbeddable);
     }
   }
 
@@ -150,6 +152,29 @@ class FreeformCanvasHitTester {
         // 直角矩形边框
         return _distanceToRectangleBorder(point, bounds) <= hitTolerance;
       }
+    }
+  }
+
+  /// **ZH** 判断点是否在 Embeddable 元素内
+  ///
+  /// **EN** Determine if the point is within an embeddable element
+  ///
+  /// 无论背景色是否透明，均命中圆角矩形及内部（不包括文字）
+  static bool _isPointInEmbeddable(Offset point, FreeformCanvasEmbeddable embeddable) {
+    final bounds = embeddable.bounds;
+    final cornerRadius = embeddable.cornerRadius;
+
+    // 无论是否有填充，都命中内部
+    if (cornerRadius != null) {
+      // 圆角矩形：使用 RRect 的 contains 判断
+      final rrect = RRect.fromRectAndRadius(
+        bounds,
+        Radius.circular(cornerRadius),
+      );
+      return rrect.contains(point);
+    } else {
+      // 直角矩形：使用简单的矩形判断
+      return isPointInRect(point, bounds);
     }
   }
 

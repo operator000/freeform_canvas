@@ -40,7 +40,7 @@ class FreeformCanvasPainter extends CustomPainter {
     drawGrid(canvas: canvas, size: size, appState: appState, scale: editorState.scale,pan: editorState.pan);
     for (final element in elements) {
       if(element.id!=draftId&&element.id != editorState.textEditorState.textEditData?.behalfElement.id){
-        drawElement(canvas, element);
+        drawElement(canvas, element, editorState.embeddableRenderer,editorState.scale,editorState.pan);
       }
     }
     canvas.restore();
@@ -53,9 +53,11 @@ class FreeformCanvasPainter extends CustomPainter {
 }
 
 /// **ZH** 绘制单个元素
-/// 
+///
 /// **EN** Draw a single element
-void drawElement(Canvas canvas, FreeformCanvasElement element) {
+void drawElement(Canvas canvas, FreeformCanvasElement element, [
+  EmbeddableRenderer? embeddableRenderer,double scale = 1, Offset pan = Offset.zero
+]) {
   if(element.isDeleted) return;
 
   // 如果元素有旋转角度，应用旋转变换
@@ -118,6 +120,9 @@ void drawElement(Canvas canvas, FreeformCanvasElement element) {
       break;
     case FreeformCanvasElementType.diamond:
       _drawDiamond(canvas, element as FreeformCanvasDiamond);
+      break;
+    case FreeformCanvasElementType.embeddable:
+      _drawEmbeddable(canvas, element as FreeformCanvasEmbeddable, embeddableRenderer,scale,pan);
       break;
   }
 
@@ -242,6 +247,178 @@ void _drawRectangle(Canvas canvas, FreeformCanvasRectangle rect) {
           canvas.drawRect(bounds, strokePaint);
       }
     }
+  }
+}
+
+/// **ZH** 绘制 Embeddable 元素
+///
+/// **EN** Draw an embeddable element
+void _drawEmbeddable(
+  Canvas canvas, 
+  FreeformCanvasEmbeddable embeddable, [
+  EmbeddableRenderer? embeddableRenderer,
+  double scale = 1,
+  Offset pan = Offset.zero
+]) {
+  // 1. 如果有外部渲染器，调用它
+  if (embeddableRenderer != null) {
+    // 计算屏幕坐标位置（考虑平移和缩放）
+    final screenX = (embeddable.x + pan.dx) * scale;
+    final screenY = (embeddable.y + pan.dy) * scale;
+    final screenPosition = Offset(screenX, screenY);
+
+    embeddableRenderer(
+      canvas,
+      embeddable.width,
+      embeddable.height,
+      screenPosition,
+      embeddable,
+    );
+    return;
+  }
+
+  // 2. 默认渲染：绘制矩形框（复用矩形的绘制逻辑）
+  final bounds = embeddable.bounds;
+  final paint = embeddable.fillPaint;
+  final strokePaint = embeddable.strokePaint;
+  final cornerRadius = embeddable.cornerRadius;
+
+  // 绘制填充
+  if (embeddable.backgroundColor.isNotTransparent) {
+    if (cornerRadius != null) {
+      final rrect = RRect.fromRectAndRadius(
+        bounds,
+        Radius.circular(cornerRadius),
+      );
+      // 根据 fillStyle 选择填充方式
+      switch (embeddable.fillStyle) {
+        case 'solid':
+          canvas.drawRRect(rrect, paint);
+          break;
+        case 'hachure':
+          canvas.save();
+          canvas.clipRRect(rrect);
+          _drawHachureFill(canvas, bounds, paint);
+          canvas.restore();
+          break;
+        case 'cross-hatch':
+          canvas.save();
+          canvas.clipRRect(rrect);
+          _drawCrossHatchFill(canvas, bounds, paint);
+          canvas.restore();
+          break;
+        default:
+          canvas.drawRRect(rrect, paint);
+      }
+
+      // 绘制描边
+      switch (embeddable.strokeStyle) {
+        case 'solid':
+          canvas.drawRRect(rrect, strokePaint);
+          break;
+        case 'dashed':
+        case 'dotted':
+          _drawRoundedRectStroke(canvas, rrect, strokePaint, embeddable.strokeStyle);
+          break;
+        default:
+          canvas.drawRRect(rrect, strokePaint);
+      }
+    } else {
+      // 直角矩形
+      switch (embeddable.fillStyle) {
+        case 'solid':
+          canvas.drawRect(bounds, paint);
+          break;
+        case 'hachure':
+          _drawHachureFill(canvas, bounds, paint);
+          break;
+        case 'cross-hatch':
+          _drawCrossHatchFill(canvas, bounds, paint);
+          break;
+        default:
+          canvas.drawRect(bounds, paint);
+      }
+
+      // 绘制描边
+      switch (embeddable.strokeStyle) {
+        case 'solid':
+          canvas.drawRect(bounds, strokePaint);
+          break;
+        case 'dashed':
+          _drawRectStrokeDashed(canvas, bounds, strokePaint);
+          break;
+        case 'dotted':
+          _drawRectStrokeDotted(canvas, bounds, strokePaint);
+          break;
+        default:
+          canvas.drawRect(bounds, strokePaint);
+      }
+    }
+  } else {
+    // 无填充，只绘制描边
+    if (cornerRadius != null) {
+      final rrect = RRect.fromRectAndRadius(
+        bounds,
+        Radius.circular(cornerRadius),
+      );
+
+      switch (embeddable.strokeStyle) {
+        case 'solid':
+          canvas.drawRRect(rrect, strokePaint);
+          break;
+        case 'dashed':
+        case 'dotted':
+          _drawRoundedRectStroke(canvas, rrect, strokePaint, embeddable.strokeStyle);
+          break;
+        default:
+          canvas.drawRRect(rrect, strokePaint);
+      }
+    } else {
+      switch (embeddable.strokeStyle) {
+        case 'solid':
+          canvas.drawRect(bounds, strokePaint);
+          break;
+        case 'dashed':
+          _drawRectStrokeDashed(canvas, bounds, strokePaint);
+          break;
+        case 'dotted':
+          _drawRectStrokeDotted(canvas, bounds, strokePaint);
+          break;
+        default:
+          canvas.drawRect(bounds, strokePaint);
+      }
+    }
+  }
+
+  // 3. 然后画居中文字
+  if (embeddable.link != null && embeddable.link!.isNotEmpty) {
+    final fontSize = embeddable.width * 0.08; // 字号与宽度成正比，比例系数 0.08
+
+    final textStyle = TextStyle(
+      fontSize: fontSize,
+      color: embeddable.strokeColor.color, // 使用 FreeformCanvasColor 的 color 属性
+    );
+
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: embeddable.link,
+        style: textStyle,
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: null, // 允许多行
+    );
+
+    // 允许文字超出边界框
+    textPainter.layout();
+
+    // 居中绘制
+    final center = bounds.center;
+    final offset = Offset(
+      center.dx - textPainter.width / 2,
+      center.dy - textPainter.height / 2,
+    );
+
+    textPainter.paint(canvas, offset);
   }
 }
 

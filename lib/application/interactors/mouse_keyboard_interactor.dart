@@ -212,6 +212,8 @@ class _MouseKeyboardInteractorWidgetState extends State<MouseKeyboardInteractorW
           currentHandler = TextEditHandler();
         case EditorTool.eraser:
           currentHandler = EraserHandler();
+        case EditorTool.embeddable:
+          currentHandler = TwoPointCreationHandler(type: FreeformCanvasElementType.embeddable);
       }
     }
 

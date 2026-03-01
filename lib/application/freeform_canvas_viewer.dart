@@ -37,8 +37,10 @@ class FreeformCanvasViewer extends StatefulWidget {
     this.renderer = const CanvasRenderer(),
     this.interactor = const MouseKeyboardInteractor(),
     this.overlays = const[],
-  }) : assert(file != null || jsonString != null,
-            'Must provide file or jsonString');
+  }) : assert(
+    (file==null ?1 :0) + (jsonString==null ?1 :0) + (editorState==null ?1 :0) == 2,
+    'Provide file or jsonString or provide editorState'
+  );
 
   @override
   State<FreeformCanvasViewer> createState() => _FreeformCanvasViewerState();
@@ -56,6 +58,7 @@ class _FreeformCanvasViewerState extends State<FreeformCanvasViewer> {
     super.initState();
     if(widget.editorState != null){
       _editorState = widget.editorState!;
+      initDone = true;
     }else{
       _loadFile();
     }
@@ -81,7 +84,7 @@ class _FreeformCanvasViewerState extends State<FreeformCanvasViewer> {
   void _loadFile() {
     try {
       if (widget.file != null) {
-        _editorState = EditorState(file: widget.file);
+        _editorState = EditorState(file: widget.file!);
         _error = null;
       } else if (widget.jsonString != null) {
         _editorState = EditorState(file: FreeformCanvasParser.parseFromString(widget.jsonString!));
@@ -130,7 +133,7 @@ class _FreeformCanvasViewerState extends State<FreeformCanvasViewer> {
                 children: [
                   ...widget.renderer.buildcanvas(context, _editorState),
                   widget.interactor.build(context, _editorState),
-                  widget.renderer.buildTextfield(context, _editorState),
+                  ...widget.renderer.buildInteractiveOverlays(context, _editorState),
                   Positioned(
                     child: Inspector(
                       editorState: _editorState,

@@ -12,6 +12,7 @@ enum FreeformCanvasElementType {
   line,
   arrow,
   diamond,
+  embeddable,
 }
 /// **ZH** 有路径点的 element，即 arrow、line、freedraw
 /// 
@@ -151,6 +152,8 @@ abstract class FreeformCanvasElement {
         return FreeformCanvasArrow.fromJson(json);
       case FreeformCanvasElementType.diamond:
         return FreeformCanvasDiamond.fromJson(json);
+      case FreeformCanvasElementType.embeddable:
+        return FreeformCanvasEmbeddable.fromJson(json);
     }
   }
 
@@ -200,6 +203,8 @@ abstract class FreeformCanvasElement {
         return FreeformCanvasElementType.arrow;
       case 'diamond':
         return FreeformCanvasElementType.diamond;
+      case 'embeddable':
+        return FreeformCanvasElementType.embeddable;
       default:
         throw ArgumentError('Unknown element type: $type');
     }
@@ -302,6 +307,92 @@ class FreeformCanvasRectangle extends FreeformCanvasElement {
 
   @override
   Map<String, dynamic> toJson() {
+    final json = _baseToJson();
+    return json;
+  }
+
+  @override
+  double? get cornerRadius {
+    if (roundness == null) return null;
+
+    if (roundness!.type == 2) {
+      // 可缩放圆角：使用最小边的15%
+      final minSide = width < height ? width : height;
+      return minSide * 0.15;
+    } else {
+      // 固定圆角 (type == 3)
+      return 8.0;
+    }
+  }
+}
+
+/// **ZH** Embeddable 元素（嵌入式内容元素）
+///
+/// **EN** Embeddable element (embedded content element)
+class FreeformCanvasEmbeddable extends FreeformCanvasElement {
+  FreeformCanvasEmbeddable({
+    required super.id,
+    required super.index,
+    required super.x,
+    required super.y,
+    required super.width,
+    required super.height,
+    required super.angle,
+    required super.strokeColor,
+    required super.backgroundColor,
+    required super.fillStyle,
+    required super.strokeWidth,
+    required super.strokeStyle,
+    required super.roughness,
+    required super.opacity,
+    required super.locked,
+    required super.groupIds,
+    super.frameId,
+    super.boundElements,
+    super.link,
+    super.version,
+    super.versionNonce,
+    super.seed,
+    super.updated,
+    super.roundness,
+    super.isDeleted,
+  }) : super(type: FreeformCanvasElementType.embeddable);
+
+  factory FreeformCanvasEmbeddable.fromJson(Map<String, dynamic> json) {
+    return FreeformCanvasEmbeddable(
+      id: json['id'] as String,
+      index: json['index'] as String,
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      width: (json['width'] as num).toDouble(),
+      height: (json['height'] as num).toDouble(),
+      angle: (json['angle'] as num).toDouble(),
+      strokeColor: FreeformCanvasColor.fromString(json['strokeColor'] as String),
+      backgroundColor: FreeformCanvasColor.fromString(json['backgroundColor'] as String),
+      fillStyle: json['fillStyle'] as String,
+      strokeWidth: (json['strokeWidth'] as num).toDouble(),
+      strokeStyle: json['strokeStyle'] as String,
+      roughness: (json['roughness'] as num).toDouble(),
+      opacity: (json['opacity'] as num).toDouble(),
+      locked: json['locked'] as bool? ?? false,
+      groupIds: List<String>.from(json['groupIds'] as List? ?? []),
+      frameId: json['frameId'] as String?,
+      boundElements: json['boundElements'] as List<dynamic>?,
+      link: json['link'] as String?,
+      version: json['version'] as int?,
+      versionNonce: json['versionNonce'] as int?,
+      seed: json['seed'] as int?,
+      updated: json['updated'] as int?,
+      roundness: json['roundness'] != null
+          ? FreeformCanvasRoundness.fromJson(json['roundness'])
+          : null,
+      isDeleted: json['isDeleted'] as bool? ?? false,
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    // 使用基类提供的序列化方法，因为没有额外字段
     final json = _baseToJson();
     return json;
   }

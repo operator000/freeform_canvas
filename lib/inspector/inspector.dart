@@ -228,6 +228,17 @@ class _InspectorState extends State<Inspector> {
           //TODO:端点
           EleCap.opacity,
         ];
+      case FreeformCanvasElementType.embeddable:
+        return [
+          EleCap.strokeColor,
+          EleCap.backgroundColor,
+          EleCap.fillStyle,
+          EleCap.strokeWidth,
+          EleCap.strokeStyle,
+          EleCap.roughness,
+          EleCap.roundness1,
+          EleCap.opacity,
+        ];
     }
   }
 }

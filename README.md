@@ -17,10 +17,11 @@ It aims to provide an Excalidraw-compatible whiteboard editor architecture, with
 The core features of freeform_canvas include:
 
 * Single Source of Truth (SSOT) architecture (EditorState as the single source of state)
-* Support for creating and editing rich elements, with undo / redo support
+* Support for creating and editing rich elements including rectangle, diamond, ellipse, arrow, line, freedraw, text and embeddable, with undo / redo support
 * Support for multiple interaction modes, including desktop, e-ink tablets, tablets, and mobile devices, with customizable interaction handlers
 * A plugin-based editor architecture, allowing renderers, interactors, and overlay layers to be customized independently
 * Support for most fields of the `.excalidraw` file format
+* (new) Support for creating any embedded element (based on `embeddable` element). And for embeddable elements, you can pass a customized renderer.
 
 One of the design goals is:
 
@@ -82,6 +83,8 @@ Future<ui.Image> renderFile({
   String? jsonString,
   File? file,
   required double Function(ui.Rect rect) scaleCalculator,
+  ///The specified renderer for embeddable elements. Will use the default renderer if not specified
+  EmbeddableRenderer? embeddableRenderer,
 });
 ```
 

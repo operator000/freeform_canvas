@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'dart:ui';
 
+import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/freeform_canvas_parser.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import 'package:freeform_canvas/painters/element_geometry.dart';
@@ -11,6 +13,7 @@ Future<ui.Image> renderFile({
   String? jsonString,
   File? file,
   required double Function(ui.Rect rect) scaleCalculator,
+  EmbeddableRenderer? embeddableRenderer,
 })async{
   final double padding = 10;
   final FreeformCanvasFile _file = file==null 
@@ -29,7 +32,7 @@ Future<ui.Image> renderFile({
 
   canvas.drawColor(_file.appState.viewBackgroundColor.color, ui.BlendMode.src);
   for (final element in _file.elements) {
-    drawElement(canvas, element);
+    drawElement(canvas, element, embeddableRenderer, scale, Offset.zero);
   }
 
   final picture = recorder.endRecording();

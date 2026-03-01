@@ -102,12 +102,12 @@ static FreeformCanvasElement copyWith(
 
 /// **ZH** 根据两点创建草稿元素
 ///
-/// 用于两点拖动型工具（rectangle, ellipse, line, arrow, diamond）
+/// 用于两点拖动型工具（rectangle, ellipse, line, arrow, diamond, embeddable）
 /// [startPoint] 和 [endPoint] 定义元素的边界
 /// 
 /// **EN** Create a draft element based on two points
 /// 
-/// Used for two-point dragging tools (rectangle, ellipse, line, arrow, diamond)
+/// Used for two-point dragging tools (rectangle, ellipse, line, arrow, diamond, embeddable)
 /// [startPoint] and [endPoint] define the boundaries of the element
 static FreeformCanvasElement? createDraftElementFromPoints(
   FreeformCanvasElementType type,
@@ -258,6 +258,7 @@ enum FreeformCanvasElementType {
   line,
   arrow,
   diamond,
+  embeddable,
 }
 ```
 ### `FreeformCanvasRoundness`
@@ -647,7 +648,31 @@ void quitPreview();
 ```
 
 ### 其余
+embeddable元素允许使用EditorState中传入的渲染器渲染。渲染器函数类型如下：
 ```dart
+/// **ZH** Embeddable 元素的外部渲染器类型
+///
+/// **EN** External renderer type for embeddable elements
+///
+/// - [canvas]: 外部提供的画布，渲染器应在此画布上绘制
+/// - [width]: 元素宽度
+/// - [height]: 元素高度
+/// - [screenPosition]: 元素在屏幕上的位置（左上角坐标）
+/// - [element]: 要渲染的 embeddable 元素
+typedef EmbeddableRenderer = void Function(
+  Canvas canvas,
+  double width,
+  double height,
+  Offset screenPosition,
+  FreeformCanvasEmbeddable element,
+);
+```
+EditorState其余字段：
+```dart
+  /// **ZH** Embeddable 元素的外部渲染器
+  ///
+  /// **EN** External renderer for embeddable elements
+  EmbeddableRenderer? embeddableRenderer;
   final transformState = TransformState();
   //The transformation status of the canvas, defined:
   //screen = (canvas + pan)*scale
@@ -833,9 +858,11 @@ class TextEditorState extends ChangeNotifier{
 - 类签名
 ```dart
 class ActiveLayerPainter extends CustomPainter {
+  final int alpha;
   final int repaintCounter;
   final FreeformCanvasElement? draftElement;
   final Rect? selectionRect;
+  final EditorState editorState;
   final double scale;
   final Offset pan;
 
@@ -845,6 +872,8 @@ class ActiveLayerPainter extends CustomPainter {
     required this.draftElement,//草稿元素
     required this.selectionRect,//选择框
     required this.repaintCounter,//用于触发重绘的计时器
+    required this.editorState,
+    this.alpha = 200,
   });
 }
 ```
@@ -1208,6 +1237,18 @@ class TextUpdateAction extends EditAction{
   final FreeformCanvasText updatedElement;
   final FreeformCanvasText oldElement;
 }
+/// **ZH** 更新元素的 link 字段
+///
+/// **EN** Update the link field of an element
+class UpdateElementLinkIntent extends EditIntent{
+  final String elementId;
+  final String? newLink;
+}
+class UpdateElementLinkAction extends EditAction{
+  final String elementId;
+  final String? newLink;
+  final String? oldLink;
+}
 ```
 
 ## `InteractionHandler`的各子类签名
@@ -1298,8 +1339,10 @@ class FreeformCanvasViewer extends StatefulWidget {
     this.renderer = const CanvasRenderer(),
     this.interactor = const MouseKeyboardInteractor(),
     this.overlays = const[],
-  }) : assert(file != null || jsonString != null,
-            'Must provide file or jsonString');
+  }) : assert(
+    (file==null ?1 :0) + (jsonString==null ?1 :0) + (editorState==null ?1 :0) == 2,
+    'Provide file or jsonString or provide editorState'
+  );
 }
 ```
 文件`lib\application\fundamental.dart`
@@ -1335,7 +1378,14 @@ abstract class Interactor {
 abstract class Renderer {
   ///canvas默认分动静两层，无硬性要求
   List<Widget> buildcanvas(BuildContext context,EditorState editorState);
-  Widget buildTextfield(BuildContext context,EditorState editorState);
+
+  /// **ZH** 构建需要浮动交互的组件列表（在 Interactor 层之上）
+  ///
+  /// **EN** Build a list of interactive overlay components (above the Interactor layer)
+  ///
+  /// 这些组件会被放置在交互层之上，可以接收用户输入。
+  /// 例如：文本编辑框、链接编辑面板等。
+  List<Widget> buildInteractiveOverlays(BuildContext context,EditorState editorState);
 
   const Renderer();
 }
@@ -1352,18 +1402,25 @@ abstract class Renderer {
 ///
 ///**EN** Canvas editor component adapted to desktops. Verified on Windows11.
 class WindowsFreeformCanvas extends StatefulWidget{
+
   final FreeformCanvasFile? file;
+
   final String? jsonString;
 
   final void Function(FreeformCanvasFile file)? onSave;
+
+  final EditorState? editorState;
 
   const WindowsFreeformCanvas({
     super.key, 
     this.file, 
     this.jsonString,
-    this.onSave
-  }) : assert(file != null || jsonString != null,
-            'Must provide file or jsonString');
+    this.onSave,
+    this.editorState
+  }) : assert(
+    (file==null ?1 :0) + (jsonString==null ?1 :0) + (editorState==null ?1 :0) == 2,
+    'Provide file or jsonString or provide editorState'
+  );
   @override
   State<WindowsFreeformCanvas> createState() => _WindowsFreeformCanvasState();
 }
@@ -1384,6 +1441,7 @@ class _WindowsFreeformCanvasState extends State<WindowsFreeformCanvas> {
     return FreeformCanvasViewer(
       file: file,
       jsonString: widget.jsonString,
+      editorState: widget.editorState,
       renderer: renderer,
       interactor: interactor,
       overlays: [
@@ -1447,9 +1505,13 @@ class CanvasRenderer extends Renderer{
       ActiveLayerRendererWidget(editorState: editorState),
     ];
   }
+
   @override
-  Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextEditWidget(editorState: editorState);
+  List<Widget> buildInteractiveOverlays(BuildContext context, EditorState editorState) {
+    return [
+      TextEditWidget(editorState: editorState),
+      EmbeddableLinkEditOverlayLayer(editorState: editorState),
+    ];
   }
 
   const CanvasRenderer();
@@ -1500,13 +1562,18 @@ class EInkFreeformCanvas extends StatefulWidget{
 
   final void Function(FreeformCanvasFile file)? onSave;
 
+  final EditorState? editorState;
+
   const EInkFreeformCanvas({
     super.key, 
     this.file, 
     this.jsonString,
-    this.onSave
-  }) : assert(file != null || jsonString != null,
-            'Must provide file or jsonString');
+    this.onSave,
+    this.editorState,
+  }) : assert(
+    (file==null ?1 :0) + (jsonString==null ?1 :0) + (editorState==null ?1 :0) == 2,
+    'Provide file or jsonString or provide editorState'
+  );
   @override
   State<EInkFreeformCanvas> createState() => _EInkFreeformCanvasState();
 }
@@ -1527,6 +1594,7 @@ class _EInkFreeformCanvasState extends State<EInkFreeformCanvas> {
     return FreeformCanvasViewer(
       file: file,
       jsonString: widget.jsonString,
+      editorState: widget.editorState,
       renderer: renderer,
       interactor: interactor,
       overlays: [
@@ -1557,7 +1625,6 @@ class _EInkFreeformCanvasState extends State<EInkFreeformCanvas> {
 ///**EN** The renderer specified for the e-ink screen, static layer uses bitmap caching and down-sampling,
 /// active layer reduces frame rate and analyzes EditIntent to do as much incremental drawing as possible
 class EInkScreenRenderer extends Renderer{
-  final notifier = UpdateDelayNotifier();
   @override
   List<Widget> buildcanvas(BuildContext context,EditorState editorState){
     return [
@@ -1565,10 +1632,14 @@ class EInkScreenRenderer extends Renderer{
       ActiveLayerRendererWidget(editorState: editorState),
     ];
   }
-  
+
   @override
-  Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextEditWidget(editorState: editorState);
+  List<Widget> buildInteractiveOverlays(BuildContext context, EditorState editorState) {
+    return [
+      TextEditWidget(editorState: editorState),
+      // EInkScreenRenderer 也支持 embeddable link 编辑
+      EmbeddableLinkEditOverlayLayer(editorState: editorState),
+    ];
   }
 }
 ```

@@ -19,6 +19,7 @@ class EInkToolbar extends Overlays{
       _buildToolButton(editorState: editorState,tool: EditorTool.freedraw),
       _buildToolButton(editorState: editorState,tool: EditorTool.text),
       _buildToolButton(editorState: editorState,tool: EditorTool.eraser),
+      _buildToolButton(editorState: editorState,tool: EditorTool.embeddable),
       _buildUndoButton(editorState: editorState),
       _buildRedoButton(editorState: editorState),
       _buildTextEditButton(editorState: editorState)

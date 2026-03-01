@@ -301,7 +301,7 @@ class TextUpdateAction extends EditAction{
   final FreeformCanvasText updatedElement;
   final FreeformCanvasText oldElement;
   TextUpdateAction({required this.updatedElement,required this.oldElement});
-  
+
   @override
   void commit(EditorState editorState,var modifyFile) {
     modifyFile(FreeformCanvasFileOps.updateElement(editorState.file!, updatedElement.id, (_)=>updatedElement));
@@ -309,5 +309,58 @@ class TextUpdateAction extends EditAction{
   @override
   void inverse(EditorState editorState,var modifyFile) {
     modifyFile(FreeformCanvasFileOps.updateElement(editorState.file!, oldElement.id, (_)=>oldElement));
+  }
+}
+
+/// **ZH** 更新元素的 link 字段
+///
+/// **EN** Update the link field of an element
+class UpdateElementLinkIntent extends EditIntent{
+  final String elementId;
+  final String? newLink;
+
+  UpdateElementLinkIntent({
+    required this.elementId,
+    required this.newLink,
+  });
+
+  @override
+  EditAction generateAction(EditorState editorState) {
+    final oldElement = FreeformCanvasFileOps.findElement(editorState.file!, elementId)!;
+    return UpdateElementLinkAction(
+      elementId: elementId,
+      newLink: newLink,
+      oldLink: oldElement.link,
+    );
+  }
+}
+
+class UpdateElementLinkAction extends EditAction{
+  final String elementId;
+  final String? newLink;
+  final String? oldLink;
+
+  UpdateElementLinkAction({
+    required this.elementId,
+    required this.newLink,
+    required this.oldLink,
+  });
+
+  @override
+  void commit(EditorState editorState, var modifyFile) {
+    modifyFile(FreeformCanvasFileOps.updateElement(
+      editorState.file!,
+      elementId,
+      (e) => ElementOps.copyWith(e, link: newLink),
+    ));
+  }
+
+  @override
+  void inverse(EditorState editorState, var modifyFile) {
+    modifyFile(FreeformCanvasFileOps.updateElement(
+      editorState.file!,
+      elementId,
+      (e) => ElementOps.copyWith(e, link: oldLink),
+    ));
   }
 }

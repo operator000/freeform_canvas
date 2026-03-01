@@ -7,6 +7,23 @@ import 'package:freeform_canvas/ops/freeform_canvas_file_ops.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import '../models/freeform_canvas_element.dart';
 
+/// **ZH** Embeddable 元素的外部渲染器类型
+///
+/// **EN** External renderer type for embeddable elements
+///
+/// - [canvas]: 外部提供的画布，渲染器应在此画布上绘制
+/// - [width]: 元素宽度
+/// - [height]: 元素高度
+/// - [screenPosition]: 元素在屏幕上的位置（左上角坐标）
+/// - [element]: 要渲染的 embeddable 元素
+typedef EmbeddableRenderer = void Function(
+  Canvas canvas,
+  double width,
+  double height,
+  Offset screenPosition,
+  FreeformCanvasEmbeddable element,
+);
+
 enum EditorTool {
   drag,
   select,
@@ -18,6 +35,7 @@ enum EditorTool {
   freedraw,
   text,
   eraser,
+  embeddable,
 }
 
 extension EditorToolExt on EditorTool{
@@ -41,6 +59,8 @@ extension EditorToolExt on EditorTool{
         return FreeformCanvasElementType.freedraw;
       case EditorTool.text:
         return FreeformCanvasElementType.text;
+      case EditorTool.embeddable:
+        return FreeformCanvasElementType.embeddable;
       case EditorTool.eraser:
         return null;
     }
@@ -68,6 +88,8 @@ extension EditorToolExt on EditorTool{
         return CustomIcons.text;
       case EditorTool.eraser:
         return CustomIcons.eraser;
+      case EditorTool.embeddable:
+        return Icons.code;
     }
   }
 }
@@ -83,6 +105,11 @@ class EditorState extends ChangeNotifier{
   final actionState = ActionState();
   FreeformCanvasFile? _file;
   FreeformCanvasFile? get file => _file;
+
+  /// **ZH** Embeddable 元素的外部渲染器
+  ///
+  /// **EN** External renderer for embeddable elements
+  EmbeddableRenderer? embeddableRenderer;
 
   ///**ZH** 文件修改控制，仅对EditAction子类开放
   ///仅在 EditAction.commit & inverse 方法中传递，即仅在该方法和初始化时 _file 可被改变
@@ -207,7 +234,7 @@ class EditorState extends ChangeNotifier{
   }
 
   EditorState({
-    FreeformCanvasFile? file,
+    required FreeformCanvasFile file,
   }):_file = file{
     toolState = ToolState(defaultTool);
   }

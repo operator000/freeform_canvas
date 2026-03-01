@@ -16,10 +16,11 @@ freeform_canvas 是一个 **类 Excalidraw 白板编辑器**，旨在提供一�
 freeform_canvas 的核心特征包括：
 
 * Single Source of Truth（SSOT）架构（EditorState 作为唯一状态源）
-* 支持丰富元素的创建、编辑，支持undo/redo
+* 支持矩形、菱形、文字、椭圆、箭头、直线、任意嵌入内容的创建、编辑，支持undo/redo
 * 支持电脑桌面、墨水屏平板、平板、手机等多种交互方式，并可重写交互类
 * 编辑器具有插件式结构，渲染器、交互器、覆盖层可分别自定义
 * 支持`.excalidraw`文件格式的多数字段
+* (new) 支持创建任意嵌入元素（由embeddable拓展而来），对于embeddable元素，支持覆写渲染器
 
 设计目标之一是：
 
@@ -79,7 +80,9 @@ Future<ui.Image> renderFile({
   String? jsonString,
   File? file,
   required double Function(ui.Rect rect) scaleCalculator,
-});
+  ///embeddable元素的指定渲染器，传空时使用默认渲染
+  EmbeddableRenderer? embeddableRenderer,
+})
 ```
 
 ## 详细文档

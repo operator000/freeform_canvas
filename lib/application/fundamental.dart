@@ -31,13 +31,20 @@ abstract class Interactor {
   const Interactor();
 }
 
-/// **ZH** 编辑器的渲染器组件，负责渲染画布和文本编辑框。详见文档
+/// **ZH** 编辑器的渲染器组件，负责渲染画布和需要浮动交互的组件。详见文档
 ///
-/// **EN** The editor's renderer component, which renders the canvas and text field.
+/// **EN** The editor's renderer component, which renders the canvas and interactive overlay components.
 /// Refer to the documentation for details.
 abstract class Renderer {
   List<Widget> buildcanvas(BuildContext context,EditorState editorState);
-  Widget buildTextfield(BuildContext context,EditorState editorState);
+
+  /// **ZH** 构建需要浮动交互的组件列表（在 Interactor 层之上）
+  ///
+  /// **EN** Build a list of interactive overlay components (above the Interactor layer)
+  ///
+  /// 这些组件会被放置在交互层之上，可以接收用户输入。
+  /// 例如：文本编辑框、链接编辑面板等。
+  List<Widget> buildInteractiveOverlays(BuildContext context,EditorState editorState);
 
   const Renderer();
 }

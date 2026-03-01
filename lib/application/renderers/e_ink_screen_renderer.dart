@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/application/renderers/text_edit_widget.dart';
+import 'package:freeform_canvas/application/renderers/canvas_renderer.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/fundamental.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/intents.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
@@ -23,10 +24,14 @@ class EInkScreenRenderer extends Renderer{
       ActiveLayerRendererWidget(editorState: editorState),
     ];
   }
-  
+
   @override
-  Widget buildTextfield(BuildContext context, EditorState editorState) {
-    return TextEditWidget(editorState: editorState);
+  List<Widget> buildInteractiveOverlays(BuildContext context, EditorState editorState) {
+    return [
+      TextEditWidget(editorState: editorState),
+      // EInkScreenRenderer 也支持 embeddable link 编辑
+      EmbeddableLinkEditOverlayLayer(editorState: editorState),
+    ];
   }
 }
 
@@ -146,9 +151,9 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     canvas.drawColor(widget.editorState.file!.appState.viewBackgroundColor.color, BlendMode.src);
     drawGrid(canvas: canvas, size: widget.size, appState:widget.editorState.file!.appState, scale: scale,pan: pan);
     for (final element in widget.editorState.file!.elements) {
-      if(element.id!=widget.editorState.draftState.draftId 
+      if(element.id!=widget.editorState.draftState.draftId
         && element.id!=widget.editorState.textEditorState.textEditData?.behalfElement.id){
-        drawElement(canvas, element);
+        drawElement(canvas, element, widget.editorState.embeddableRenderer, scale, pan);
       }
     }
 
@@ -171,8 +176,8 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     final pan = widget.editorState.pan;
     canvas.scale(scale, scale);
     canvas.translate(pan.dx, pan.dy);
-    
-    drawElement(canvas, element);
+
+    drawElement(canvas, element, widget.editorState.embeddableRenderer, scale, pan);
 
     final picture = recorder.endRecording();
     _mainBitmap = picture.toImageSync(
@@ -200,7 +205,7 @@ class _CachedStaticLayerRendererWidgetState extends State<_CachedStaticLayerRend
     int startIdx = lastfd.points.length-1;
     final pointDiff = newfd.points.sublist(startIdx,newfd.points.length);
     final diff = ElementOps.createFreedraw(pointDiff.map((e)=>Offset(e.x, e.y)));
-    drawElement(canvas, diff);
+    drawElement(canvas, diff, widget.editorState.embeddableRenderer, scale, pan);
 
     final picture = recorder.endRecording();
     _mainBitmap = picture.toImageSync(
@@ -271,6 +276,7 @@ class _ActiveLayerRendererWidgetState extends State<ActiveLayerRendererWidget> {
               + widget.editorState.transformState.count,
             scale: widget.editorState.scale,
             pan: widget.editorState.pan, 
+            editorState: widget.editorState,
             alpha: 255,
           ),
         ),

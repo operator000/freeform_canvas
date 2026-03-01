@@ -318,6 +318,35 @@ class ElementOps {
           updated: updated,
           isDeleted:isDeleted,
         );
+      case FreeformCanvasElementType.embeddable:
+        return _copyEmbeddable(element as FreeformCanvasEmbeddable,
+          id: id,
+          type: type,
+          index: index,
+          x: x,
+          y: y,
+          width: width,
+          height: height,
+          angle: angle,
+          strokeColor: strokeColor,
+          backgroundColor: backgroundColor,
+          fillStyle: fillStyle,
+          strokeWidth: strokeWidth,
+          strokeStyle: strokeStyle,
+          roughness: roughness,
+          opacity: opacity,
+          locked: locked,
+          groupIds: groupIds,
+          frameId: frameId,
+          boundElements: boundElements,
+          link: link,
+          version: version,
+          versionNonce: versionNonce,
+          seed: seed,
+          roundness: roundness,
+          updated: updated,
+          isDeleted:isDeleted,
+        );
     }
   }
 
@@ -460,6 +489,26 @@ class ElementOps {
           groupIds: [],
           roundness: null,
         );
+      case FreeformCanvasElementType.embeddable:
+        return FreeformCanvasEmbeddable(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: FreeformCanvasColor.black(),
+          backgroundColor: FreeformCanvasColor.transparent(),
+          fillStyle: 'solid',
+          strokeWidth: 2.0,
+          strokeStyle: 'solid',
+          roughness: 0.0,
+          opacity: 100.0,
+          locked: false,
+          groupIds: [],
+          roundness: null,
+        );
       default:
         return null;
     }
@@ -536,6 +585,67 @@ class ElementOps {
       updated: _getNullableValue(updated, rectangle.updated),
       roundness: _getNullableValue(roundness, rectangle.roundness),
       isDeleted: _getValue(isDeleted, rectangle.isDeleted),
+    );
+  }
+
+  /// **ZH** 复制 Embeddable 元素
+  ///
+  /// **EN** Copy an embeddable element
+  static FreeformCanvasEmbeddable _copyEmbeddable(
+    FreeformCanvasEmbeddable embeddable, {
+    required Object? id,
+    required Object? type,
+    required Object? index,
+    required Object? x,
+    required Object? y,
+    required Object? width,
+    required Object? height,
+    required Object? angle,
+    required Object? strokeColor,
+    required Object? backgroundColor,
+    required Object? fillStyle,
+    required Object? strokeWidth,
+    required Object? strokeStyle,
+    required Object? roughness,
+    required Object? opacity,
+    required Object? locked,
+    required Object? groupIds,
+    required Object? frameId,
+    required Object? boundElements,
+    required Object? link,
+    required Object? version,
+    required Object? versionNonce,
+    required Object? seed,
+    required Object? roundness,
+    required Object? updated,
+    required Object? isDeleted,
+  }) {
+    return FreeformCanvasEmbeddable(
+      id: _getValue(id, embeddable.id),
+      index: _getValue(index, embeddable.index),
+      x: _getValue(x, embeddable.x),
+      y: _getValue(y, embeddable.y),
+      width: _getValue(width, embeddable.width),
+      height: _getValue(height, embeddable.height),
+      angle: _getValue(angle, embeddable.angle),
+      strokeColor: _getValue(strokeColor, embeddable.strokeColor),
+      backgroundColor: _getValue(backgroundColor, embeddable.backgroundColor),
+      fillStyle: _getValue(fillStyle, embeddable.fillStyle),
+      strokeWidth: _getValue(strokeWidth, embeddable.strokeWidth),
+      strokeStyle: _getValue(strokeStyle, embeddable.strokeStyle),
+      roughness: _getValue(roughness, embeddable.roughness),
+      opacity: _getValue(opacity, embeddable.opacity),
+      locked: _getValue(locked, embeddable.locked),
+      groupIds: _getValue(groupIds, embeddable.groupIds),
+      frameId: _getNullableValue(frameId, embeddable.frameId),
+      boundElements: _getNullableValue(boundElements, embeddable.boundElements),
+      link: _getNullableValue(link, embeddable.link),
+      version: _getNullableValue(version, embeddable.version),
+      versionNonce: _getNullableValue(versionNonce, embeddable.versionNonce),
+      seed: _getNullableValue(seed, embeddable.seed),
+      updated: _getNullableValue(updated, embeddable.updated),
+      roundness: _getNullableValue(roundness, embeddable.roundness),
+      isDeleted: _getValue(isDeleted, embeddable.isDeleted),
     );
   }
 
@@ -1009,7 +1119,8 @@ class ElementOps {
       case FreeformCanvasElementType.rectangle:
       case FreeformCanvasElementType.ellipse:
       case FreeformCanvasElementType.diamond:
-        // 矩形、椭圆、菱形：直接缩放
+      case FreeformCanvasElementType.embeddable:
+        // 矩形、椭圆、菱形、embeddable：直接缩放
         return _scaleSimpleElement(initialElement, anchorPoint, scaleX, scaleY);
 
       case FreeformCanvasElementType.text:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/painters/element_geometry.dart';
 import 'package:freeform_canvas/painters/static_layer_painter.dart';
 
@@ -12,6 +13,7 @@ class ActiveLayerPainter extends CustomPainter {
   final int repaintCounter;
   final FreeformCanvasElement? draftElement;
   final FreeformCanvasElement? selectionRectElement;
+  final EditorState editorState;
   final double scale;
   final Offset pan;
 
@@ -21,6 +23,7 @@ class ActiveLayerPainter extends CustomPainter {
     required this.draftElement,
     required this.selectionRectElement,
     required this.repaintCounter,
+    required this.editorState,
     this.alpha = 200,
   });
 
@@ -33,7 +36,7 @@ class ActiveLayerPainter extends CustomPainter {
 
     // Draw the draft element (half-transparent style, transformation applied)
     if (draftElement!= null) {
-      drawDraftElement(canvas, draftElement!,alpha);
+      drawDraftElement(canvas, draftElement!,alpha, editorState);
     }
 
     // Draw the selection box (transformation applied)
@@ -96,14 +99,14 @@ void drawSelectionHandle(Canvas canvas,Offset offset,double scale){
 /// **ZH** 绘制草稿元素（半透明样式）
 /// 
 /// **EN** Draw the draft element (half-transparent style)
-void drawDraftElement(Canvas canvas, FreeformCanvasElement element,[int alpha = 200]) {
+void drawDraftElement(Canvas canvas, FreeformCanvasElement element,int alpha,EditorState editorState) {
   final alphaPaint = Paint()..colorFilter = ColorFilter.mode(
     Colors.white.withAlpha(alpha),
     BlendMode.modulate,
   );
   canvas.saveLayer(null, alphaPaint);
 
-  drawElement(canvas, element);
+  drawElement(canvas, element, editorState.embeddableRenderer, editorState.scale, editorState.pan);
 
   canvas.restore();
 }

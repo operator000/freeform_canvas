@@ -165,6 +165,8 @@ class _StylusAwareInteractorWidgetState extends State<StylusAwareInteractorWidge
             currentController = TextEditHandler();
           case EditorTool.eraser:
             currentController = EraserHandler();
+          case EditorTool.embeddable:
+            currentController = TwoPointCreationHandler(type: FreeformCanvasElementType.embeddable);
         }
       }
       if(currentController!=null){
