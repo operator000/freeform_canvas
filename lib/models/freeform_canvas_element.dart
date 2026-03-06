@@ -21,6 +21,86 @@ abstract mixin class ElementWithPoints{
   List<FreeformCanvasPoint> get points;
 }
 
+/// **ZH** 箭头类型
+/// 
+/// **EN** Arrow type
+enum ArrowHeadType{
+  triangleOutline,
+  arrow,
+  triangle,
+}
+extension ArrowTypeExt on ArrowHeadType{
+  static ArrowHeadType? decode(String? value){
+    switch(value){
+      case 'triangle_outline':
+        return ArrowHeadType.triangleOutline;
+      case 'arrow':
+        return ArrowHeadType.arrow;
+      case 'triangle':
+        return ArrowHeadType.triangle;
+      default:
+        return null;
+    }
+  }
+  String encode(){
+    switch(this){
+      case ArrowHeadType.triangleOutline:
+        return 'triangle_outline';
+      case ArrowHeadType.arrow:
+        return 'arrow';
+      case ArrowHeadType.triangle:
+        return 'triangle';
+    }
+  }
+}
+/// Font enumeration, 5-Excalifont; 6-Nunito; 7-Lilita One; 8-Comic Shanns
+enum FontFamily{
+  excalifont,
+  nunito,
+  lilitaOne,
+  comicShanns
+}
+extension FontFamilyExt on FontFamily{
+  static FontFamily decode(int? value){
+    switch(value){
+      case 5:
+        return FontFamily.excalifont;
+      case 6:
+        return FontFamily.nunito;
+      case 7:
+        return FontFamily.lilitaOne;
+      case 8:
+        return FontFamily.comicShanns;
+      default:
+        return defaultFont;
+    }
+  }
+  static FontFamily get defaultFont => FontFamily.excalifont;
+  int encode(){
+    switch(this){
+      case FontFamily.excalifont:
+        return 5;
+      case FontFamily.nunito:
+        return 6;
+      case FontFamily.lilitaOne:
+        return 7;
+      case FontFamily.comicShanns:
+        return 8;
+    }
+  }
+}
+/// Font size: Small-16 Medium-20 Large-28 Extra Large-36
+class FontSize{
+  final double value;
+  FontSize(this.value);
+
+  FontSize.small():value = 16;
+  FontSize.medium():value = 20;
+  FontSize.large():value = 28;
+  FontSize.extraLarge():value = 36;
+  FontSize.defaultSize():value = 20;
+}
+
 /// **ZH** 所有 FreeformCanvas 元素的基类，包含所有元素共享的通用字段
 /// 
 ///  **EN** The base class for all FreeformCanvas elements, containing common fields shared by all elements
@@ -487,10 +567,10 @@ class FreeformCanvasText extends FreeformCanvasElement {
   final String? originalText;
 
   /// Small-16 Medium-20 Large-28 Extra Large-36
-  final double fontSize;
+  final FontSize fontSize;
 
   /// Font enumeration, 5-Excalifont; 6-Nunito; 7-Lilita One; 8-Comic Shanns
-  final int fontFamily;
+  final FontFamily fontFamily;
 
   /// Text alignment: left / center / right
   final String textAlign;
@@ -571,8 +651,8 @@ class FreeformCanvasText extends FreeformCanvasElement {
       updated: json['updated'] as int?,
       text: json['text'] as String,
       originalText: json['originalText'] as String?,
-      fontSize: (json['fontSize'] as num).toDouble(),
-      fontFamily: json['fontFamily'] as int? ?? 1,
+      fontSize: FontSize((json['fontSize'] as num).toDouble()),
+      fontFamily: FontFamilyExt.decode(json['fontFamily'] as int?),
       textAlign: json['textAlign'] as String? ?? 'left',
       verticalAlign: json['verticalAlign'] as String? ?? 'top',
       lineHeight: (json['lineHeight'] as num?)?.toDouble() ?? 1.25,
@@ -592,7 +672,7 @@ class FreeformCanvasText extends FreeformCanvasElement {
       'text': text,
       'originalText': originalText,
       'fontSize': fontSize,
-      'fontFamily': fontFamily,
+      'fontFamily': fontFamily.encode(),
       'textAlign': textAlign,
       'verticalAlign': verticalAlign,
       'lineHeight': lineHeight,
@@ -749,10 +829,10 @@ class FreeformCanvasLine extends FreeformCanvasElement with ElementWithPoints {
   final dynamic endBinding;
 
   /// Start arrowhead, ignore for now
-  final String? startArrowhead;
+  final ArrowHeadType? startArrowhead;
 
   /// End arrowhead, ignore for now
-  final String? endArrowhead;
+  final ArrowHeadType? endArrowhead;
 
   FreeformCanvasLine({
     required super.id,
@@ -822,8 +902,8 @@ class FreeformCanvasLine extends FreeformCanvasElement with ElementWithPoints {
       polygon: json['polygon'] as bool? ?? false,
       startBinding: json['startBinding'],
       endBinding: json['endBinding'],
-      startArrowhead: json['startArrowhead'] as String?,
-      endArrowhead: json['endArrowhead'] as String?,
+      startArrowhead: ArrowTypeExt.decode(json['startArrowhead'] as String?),
+      endArrowhead: ArrowTypeExt.decode(json['endArrowhead'] as String?),
       roundness: json['roundness'] != null
           ? FreeformCanvasRoundness.fromJson(json['roundness'])
           : null,
@@ -839,8 +919,8 @@ class FreeformCanvasLine extends FreeformCanvasElement with ElementWithPoints {
       'polygon': polygon,
       'startBinding': startBinding,
       'endBinding': endBinding,
-      'startArrowhead': startArrowhead,
-      'endArrowhead': endArrowhead,
+      'startArrowhead': startArrowhead?.encode(),
+      'endArrowhead': endArrowhead?.encode(),
     });
     return json;
   }
@@ -867,11 +947,11 @@ class FreeformCanvasArrow extends FreeformCanvasElement with ElementWithPoints i
 
   /// Start arrowhead, ignore for now
   @override
-  final String? startArrowhead;
+  final ArrowHeadType? startArrowhead;
 
   /// End arrowhead, ignore for now
   @override
-  final String? endArrowhead;
+  final ArrowHeadType? endArrowhead;
 
   FreeformCanvasArrow({
     required super.id,
@@ -942,8 +1022,8 @@ class FreeformCanvasArrow extends FreeformCanvasElement with ElementWithPoints i
       polygon: json['polygon'] as bool? ?? false,
       startBinding: json['startBinding'],
       endBinding: json['endBinding'],
-      startArrowhead: json['startArrowhead'] as String?,
-      endArrowhead: json['endArrowhead'] as String?,
+      startArrowhead: ArrowTypeExt.decode(json['startArrowhead'] as String?),
+      endArrowhead: ArrowTypeExt.decode(json['endArrowhead'] as String?),
       elbowed: json['elbowed'] as bool? ?? false,
       roundness: json['roundness'] != null
           ? FreeformCanvasRoundness.fromJson(json['roundness'])
@@ -960,8 +1040,8 @@ class FreeformCanvasArrow extends FreeformCanvasElement with ElementWithPoints i
       'polygon': polygon,
       'startBinding': startBinding,
       'endBinding': endBinding,
-      'startArrowhead': startArrowhead,
-      'endArrowhead': endArrowhead,
+      'startArrowhead': startArrowhead?.encode(),
+      'endArrowhead': endArrowhead?.encode(),
       'elbowed':elbowed,
     });
     return json;

@@ -35,15 +35,39 @@ dependencies:
   freeform_canvas:
     git:
       url: https://github.com/operator000/freeform_canvas.git
-flutter:
-  uses-material-design: true
-  fonts:
-    - family: freeform_canvas_icons
-      fonts:
-        - asset: packages/freeform_canvas/fonts/freeform_canvas_icons.ttf
+  flutter:
+    uses-material-design: true
+    fonts:
+       - family: freeform_canvas_icons
+        fonts:
+           - asset: packages/freeform_canvas/fonts/freeform_canvas_icons.ttf
+```
+### Configuring Internationalization in Your App
+
+Add the following configuration to your application's `MaterialApp`:
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
+
+MaterialApp(
+  localizationsDelegates: [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: [
+    Locale('en', ''),
+    Locale('zh', ''),
+  ],
+  // locale: Locale('en', ''),
+
+  home: YourHomePage(),
+);
 ```
 
-This project provides “two” editors:
+This project provides "two" editors:
 - One designed specifically for desktop environments with keyboard and mouse interaction
 - One designed specifically for e-ink devices with stylus interaction
 

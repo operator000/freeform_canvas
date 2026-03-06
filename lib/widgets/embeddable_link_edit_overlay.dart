@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/intents.dart';
+import 'package:freeform_canvas/core/editor_dependencies.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
 
 /// **ZH** Embeddable 元素的 Link 编辑浮动框
 ///
@@ -79,6 +81,27 @@ class _EmbeddableLinkEditOverlayState extends State<EmbeddableLinkEditOverlay> {
     });
   }
 
+  void _handleSubmit(String? newLink) {
+    // 只有当内容有变化时才提交
+    if (newLink != widget.element.link) {
+      widget.editorState.commitIntent(UpdateElementLinkIntent(
+        elementId: widget.element.id,
+        newLink: newLink,
+      ));
+    }
+    if(!mounted) return;
+    setState(() {
+      _isEditing = false;
+    });
+  }
+
+  void _handleCancel() {
+    setState(() {
+      _isEditing = false;
+      _controller.text = widget.element.link ?? '';
+    });
+  }
+
   void _openLink()async{
     if(widget.element.link == null) return;
     try{
@@ -126,58 +149,86 @@ class _EmbeddableLinkEditOverlayState extends State<EmbeddableLinkEditOverlay> {
             ],
           ),
           padding: const EdgeInsets.symmetric(horizontal: overlayPadding),
-          child: Row(
-            children: [
-              // 左侧：链接显示/编辑
-              Expanded(
-                child: _isEditing
-                    ? TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          hintText: '输入链接...',
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        style: const TextStyle(fontSize: 14),
-                        onSubmitted: (_) => _submitEdit(),
-                        autofocus: true,
-                      )
-                    : GestureDetector(
-                        onTap: _openLink,
-                        child: Text(
-                          widget.element.link ?? '',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.blue,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-              ),
-              // 右侧：编辑按钮
-              if (!_isEditing)
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 18),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: () {
-                    setState(() {
-                      _isEditing = true;
-                    });
-                    // 延迟聚焦，确保 TextField 已经构建
-                    Future.delayed(Duration.zero, () {
-                      _focusNode.requestFocus();
-                    });
-                  },
-                ),
-            ],
-          ),
+          child: _buildEditContent(),
         ),
       ),
+    );
+  }
+
+  /// **ZH** 构建编辑内容（支持自定义组件）
+  ///
+  /// **EN** Build edit content (supports custom components)
+  Widget _buildEditContent() {
+    // 如果有自定义的链接编辑组件构建器，使用它
+    final customBuilder = widget.editorState.dependencies.linkEditComponentBuilder;
+    if (customBuilder != null) {
+      final context = EmbeddableLinkEditContext(
+        element: widget.element,
+        editorState: widget.editorState,
+        currentLink: widget.element.link,
+        onSubmit: _handleSubmit,
+        onCancel: _handleCancel,
+      );
+      return customBuilder(context);
+    }
+
+    // 否则使用默认实现
+    return _buildDefaultEditContent();
+  }
+
+  /// **ZH** 构建默认的编辑内容
+  ///
+  /// **EN** Build default edit content
+  Widget _buildDefaultEditContent() {
+    return Row(
+      children: [
+        // 左侧：链接显示/编辑
+        Expanded(
+          child: _isEditing
+              ? TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: AppLocalizations.of(context)!.enterLink,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  onSubmitted: (_) => _submitEdit(),
+                  autofocus: true,
+                )
+              : GestureDetector(
+                  onTap: _openLink,
+                  child: Text(
+                    widget.element.link ?? '',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+        ),
+        // 右侧：编辑按钮
+        if (!_isEditing)
+          IconButton(
+            icon: const Icon(Icons.edit, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: () {
+              setState(() {
+                _isEditing = true;
+              });
+              // 延迟聚焦，确保 TextField 已经构建
+              Future.delayed(Duration.zero, () {
+                _focusNode.requestFocus();
+              });
+            },
+          ),
+      ],
     );
   }
 }

@@ -3,7 +3,7 @@ description: "freeform canvas"
 
 publish_to: 'none'
 
-version: 0.2026.3
+version: 0.2026.4
 
 environment:
   sdk: ^3.8.1
@@ -12,6 +12,9 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.2
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
 dev_dependencies:
   flutter_test:
@@ -24,3 +27,4 @@ flutter:
     - family: freeform_canvas_icons
       fonts:
         - asset: lib/fonts/freeform_canvas_icons.ttf
+  generate: true

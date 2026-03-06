@@ -147,6 +147,7 @@ class TwoPointCreateSession extends EditSession{
       type,
       canvasPoint,
       canvasPoint,  // 初始时终点与起点相同
+      editorState.defaultStyleState.defaultStyle,
     );
 
     if(newElement==null) return;
@@ -167,6 +168,7 @@ class TwoPointCreateSession extends EditSession{
       type,
       creationStartPoint!,
       lastUpdatePoint,
+      editorState.defaultStyleState.defaultStyle,
     );
 
     if(updatedElement==null) return;
@@ -190,6 +192,7 @@ class TwoPointCreateSession extends EditSession{
       type,
       creationStartPoint!,
       lastUpdatePoint,
+      editorState.defaultStyleState.defaultStyle,
     );
     editorState.commitIntent(ElementCreateIntent(element: element!));
     editorState.switchToolToDefault();
@@ -202,7 +205,7 @@ class CreateFreedrawSession extends EditSession{
   Offset? creationStartPoint;
   void onStart(Offset canvasPoint, EditorState editorState) {
     // 创建初始的freedraw元素
-    final element = ElementOps.createFreedraw([canvasPoint]);
+    final element = ElementOps.createFreedraw([canvasPoint], editorState.defaultStyleState.defaultStyle);
 
     editorState.newAndEnterPreview(element);
     creationStartPoint = canvasPoint;
@@ -248,7 +251,10 @@ class TextEditSession extends EditSession{
   void onTrigger(Offset canvasPoint, EditorState editorState) {
     final focusedElement = editorState.focusedElement;
     if(focusedElement==null){
-      editorState.enterTextEdit(TextEditData.newText(textCanvasPosition: canvasPoint, textColor: null));
+      editorState.enterTextEdit(TextEditData.newText(
+        textCanvasPosition: canvasPoint,
+        defaultStyle: editorState.defaultStyleState.defaultStyle,
+      ));
     }else if(focusedElement is FreeformCanvasText){
       editorState.enterTextEdit(TextEditData.fromElement(element: focusedElement));
     }

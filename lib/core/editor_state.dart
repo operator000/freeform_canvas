@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/intents.dart';
 import 'package:freeform_canvas/custom_icons.dart';
 import 'package:freeform_canvas/core/edit_intent_and_session/fundamental.dart';
+import 'package:freeform_canvas/core/editor_dependencies.dart';
 import 'package:freeform_canvas/models/text_editing_data.dart';
 import 'package:freeform_canvas/ops/freeform_canvas_file_ops.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
+import 'package:freeform_canvas/models/element_style.dart';
 import '../models/freeform_canvas_element.dart';
 
 /// **ZH** Embeddable 元素的外部渲染器类型
@@ -103,13 +105,14 @@ class EditorState extends ChangeNotifier{
   final draftState = DraftState();
   final transformState = TransformState();
   final actionState = ActionState();
+  final defaultStyleState = DefaultStyleState();
   FreeformCanvasFile? _file;
   FreeformCanvasFile? get file => _file;
 
-  /// **ZH** Embeddable 元素的外部渲染器
+  /// **ZH** 编辑器依赖配置
   ///
-  /// **EN** External renderer for embeddable elements
-  EmbeddableRenderer? embeddableRenderer;
+  /// **EN** Editor dependencies configuration
+  final EditorDependencies dependencies;
 
   ///**ZH** 文件修改控制，仅对EditAction子类开放
   ///仅在 EditAction.commit & inverse 方法中传递，即仅在该方法和初始化时 _file 可被改变
@@ -235,6 +238,7 @@ class EditorState extends ChangeNotifier{
 
   EditorState({
     required FreeformCanvasFile file,
+    this.dependencies = EditorDependencies.defaultDependencies,
   }):_file = file{
     toolState = ToolState(defaultTool);
   }
@@ -320,6 +324,22 @@ class ToolState extends ChangeNotifier{
     _currentTool==EditorTool.select ||
     _currentTool==EditorTool.eraser
   );
+}
+///**ZH** 管理与通知元素默认样式
+///
+///**EN** Manage and notify element default style
+class DefaultStyleState extends ChangeNotifier{
+  final ElementStyle _defaultStyle = ElementStyle();
+
+  ElementStyle get defaultStyle => _defaultStyle;
+
+  /// **ZH** 更新默认样式（不参与Action系统，直接修改）
+  ///
+  /// **EN** Update default style (does not participate in Action system, modify directly)
+  void updateDefault(ElementStylePatch patch) {
+    _defaultStyle.applyPatch(patch);
+    notifyListeners();
+  }
 }
 ///**ZH** 管理与通知草稿元素信息
 ///

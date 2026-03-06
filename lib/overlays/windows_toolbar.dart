@@ -6,6 +6,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:freeform_canvas/application/fundamental.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
 class WindowsToolbar extends Overlays{
   const WindowsToolbar();
   @override
@@ -22,8 +23,8 @@ class WindowsToolbar extends Overlays{
       _buildToolButton(editorState: editorState,tool: EditorTool.text),
       _buildToolButton(editorState: editorState,tool: EditorTool.eraser),
       _buildToolButton(editorState: editorState,tool: EditorTool.embeddable),
-      _buildUndoButton(editorState: editorState,),
-      _buildRedoButton(editorState: editorState,),
+      _buildUndoButton(editorState: editorState, context: context),
+      _buildRedoButton(editorState: editorState, context: context),
     ];
   }
   static Widget _buildToolButton({required EditorState editorState,required EditorTool tool}) {
@@ -41,11 +42,11 @@ class WindowsToolbar extends Overlays{
       ),
     );
   }
-  Widget _buildUndoButton({required EditorState editorState}){
-    return BasicButton2UI(onPointed: ()=>editorState.undo(), icon: Icons.undo, message: 'undo');
+  Widget _buildUndoButton({required EditorState editorState, required BuildContext context}){
+    return BasicButton2UI(onPointed: ()=>editorState.undo(), icon: Icons.undo, message: AppLocalizations.of(context)!.undo);
   }
-  Widget _buildRedoButton({required EditorState editorState}){
-    return BasicButton2UI(onPointed: ()=>editorState.redo(), icon: Icons.redo, message: 'redo');
+  Widget _buildRedoButton({required EditorState editorState, required BuildContext context}){
+    return BasicButton2UI(onPointed: ()=>editorState.redo(), icon: Icons.redo, message: AppLocalizations.of(context)!.redo);
   }
 }
 

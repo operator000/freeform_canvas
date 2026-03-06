@@ -350,185 +350,6 @@ class ElementOps {
     }
   }
 
-  /// **ZH** 根据两点创建草稿元素
-  ///
-  /// 用于两点拖动型工具（rectangle, ellipse, line, arrow, diamond）
-  /// [startPoint] 和 [endPoint] 定义元素的边界
-  /// 
-  /// **EN** Create a draft element based on two points
-  /// 
-  /// Used for two-point dragging tools (rectangle, ellipse, line, arrow, diamond)
-  /// [startPoint] and [endPoint] define the boundaries of the element
-  static FreeformCanvasElement? createDraftElementFromPoints(
-    FreeformCanvasElementType type,
-    Offset startPoint,
-    Offset endPoint,
-  ) {
-    // 计算边界
-    final minX = startPoint.dx < endPoint.dx ? startPoint.dx : endPoint.dx;
-    final minY = startPoint.dy < endPoint.dy ? startPoint.dy : endPoint.dy;
-    final maxX = startPoint.dx > endPoint.dx ? startPoint.dx : endPoint.dx;
-    final maxY = startPoint.dy > endPoint.dy ? startPoint.dy : endPoint.dy;
-
-    final width = maxX - minX;
-    final height = maxY - minY;
-
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-
-    switch (type) {
-      case FreeformCanvasElementType.rectangle:
-        return FreeformCanvasRectangle(
-          id: id,
-          index: '00',
-          x: minX,
-          y: minY,
-          width: width,
-          height: height,
-          angle: 0.0,
-          strokeColor: FreeformCanvasColor.black(),
-          backgroundColor: FreeformCanvasColor.transparent(),
-          fillStyle: 'solid',
-          strokeWidth: 2.0,
-          strokeStyle: 'solid',
-          roughness: 0.0,
-          opacity: 100.0,
-          locked: false,
-          groupIds: [],
-          roundness: null,
-        );
-      case FreeformCanvasElementType.ellipse:
-        return FreeformCanvasEllipse(
-          id: id,
-          index: '00',
-          x: minX,
-          y: minY,
-          width: width,
-          height: height,
-          angle: 0.0,
-          strokeColor: FreeformCanvasColor.black(),
-          backgroundColor: FreeformCanvasColor.transparent(),
-          fillStyle: 'solid',
-          strokeWidth: 2.0,
-          strokeStyle: 'solid',
-          roughness: 0.0,
-          opacity: 100.0,
-          locked: false,
-          groupIds: [],
-        );
-      case FreeformCanvasElementType.line:
-        // 直线使用points表示
-        return FreeformCanvasLine(
-          id: id,
-          index: '00',
-          x: minX,
-          y: minY,
-          width: width,
-          height: height,
-          angle: 0.0,
-          strokeColor: FreeformCanvasColor.black(),
-          backgroundColor: FreeformCanvasColor.transparent(),
-          fillStyle: 'solid',
-          strokeWidth: 2.0,
-          strokeStyle: 'solid',
-          roughness: 0.0,
-          opacity: 100.0,
-          locked: false,
-          groupIds: [],
-          points: [
-            FreeformCanvasPoint(startPoint.dx-minX, startPoint.dy-minY),  // 起点（相对坐标）
-            FreeformCanvasPoint(endPoint.dx-minX, endPoint.dy-minY),  // 终点（相对坐标）
-          ],
-          polygon: false,
-          startArrowhead: null,
-          endArrowhead: null,
-        );
-      case FreeformCanvasElementType.arrow:
-        // 箭头与直线类似，但包含箭头头
-        return FreeformCanvasArrow(
-          id: id,
-          index: '00',
-          x: minX,
-          y: minY,
-          width: width,
-          height: height,
-          angle: 0.0,
-          strokeColor: FreeformCanvasColor.black(),
-          backgroundColor: FreeformCanvasColor.transparent(),
-          fillStyle: 'solid',
-          strokeWidth: 2.0,
-          strokeStyle: 'solid',
-          roughness: 0.0,
-          opacity: 100.0,
-          locked: false,
-          groupIds: [],
-          points: [
-            FreeformCanvasPoint(startPoint.dx-minX, startPoint.dy-minY),  // 起点（相对坐标）
-            FreeformCanvasPoint(endPoint.dx-minX, endPoint.dy-minY),  // 终点（相对坐标）
-          ],
-          polygon: false,
-          startArrowhead: null,
-          endArrowhead: 'arrow',
-        );
-      case FreeformCanvasElementType.diamond:
-        return FreeformCanvasDiamond(
-          id: id,
-          index: '00',
-          x: minX,
-          y: minY,
-          width: width,
-          height: height,
-          angle: 0.0,
-          strokeColor: FreeformCanvasColor.black(),
-          backgroundColor: FreeformCanvasColor.transparent(),
-          fillStyle: 'solid',
-          strokeWidth: 2.0,
-          strokeStyle: 'solid',
-          roughness: 0.0,
-          opacity: 100.0,
-          locked: false,
-          groupIds: [],
-          roundness: null,
-        );
-      case FreeformCanvasElementType.embeddable:
-        return FreeformCanvasEmbeddable(
-          id: id,
-          index: '00',
-          x: minX,
-          y: minY,
-          width: width,
-          height: height,
-          angle: 0.0,
-          strokeColor: FreeformCanvasColor.black(),
-          backgroundColor: FreeformCanvasColor.transparent(),
-          fillStyle: 'solid',
-          strokeWidth: 2.0,
-          strokeStyle: 'solid',
-          roughness: 0.0,
-          opacity: 100.0,
-          locked: false,
-          groupIds: [],
-          roundness: null,
-        );
-      default:
-        return null;
-    }
-  }
-
-  // 私有辅助方法：检查值是否为 _unset
-  static bool _isUnset(Object? value) => value is _Unset;
-
-  // 私有辅助方法：获取值，如果为 _unset 则返回原值
-  static T _getValue<T>(Object? newValue, T oldValue) {
-    if (_isUnset(newValue)) return oldValue;
-    return newValue as T;
-  }
-
-  // 私有辅助方法：获取可为空的值，如果为 _unset 则返回原值
-  static T? _getNullableValue<T>(Object? newValue, T? oldValue) {
-    if (_isUnset(newValue)) return oldValue;
-    return newValue as T?;
-  }
-
   // 复制矩形元素
   static FreeformCanvasRectangle _copyRectangle(
     FreeformCanvasRectangle rectangle, {
@@ -1053,6 +874,188 @@ class ElementOps {
     );
   }
 
+  /// **ZH** 根据两点创建草稿元素
+  ///
+  /// 用于两点拖动型工具（rectangle, ellipse, line, arrow, diamond）
+  /// [startPoint] 和 [endPoint] 定义元素的边界
+  /// 
+  /// **EN** Create a draft element based on two points
+  /// 
+  /// Used for two-point dragging tools (rectangle, ellipse, line, arrow, diamond)
+  /// [startPoint] and [endPoint] define the boundaries of the element
+  static FreeformCanvasElement? createDraftElementFromPoints(
+    FreeformCanvasElementType type,
+    Offset startPoint,
+    Offset endPoint,
+    ElementStyle defaultStyle,
+  ) {
+    // 计算边界
+    final minX = startPoint.dx < endPoint.dx ? startPoint.dx : endPoint.dx;
+    final minY = startPoint.dy < endPoint.dy ? startPoint.dy : endPoint.dy;
+    final maxX = startPoint.dx > endPoint.dx ? startPoint.dx : endPoint.dx;
+    final maxY = startPoint.dy > endPoint.dy ? startPoint.dy : endPoint.dy;
+
+    final width = maxX - minX;
+    final height = maxY - minY;
+
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+    switch (type) {
+      case FreeformCanvasElementType.rectangle:
+        return FreeformCanvasRectangle(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: defaultStyle.strokeColor,
+          backgroundColor: defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle,
+          strokeWidth: defaultStyle.strokeWidth,
+          strokeStyle: defaultStyle.strokeStyle,
+          roughness: defaultStyle.roughness,
+          opacity: defaultStyle.opacity,
+          locked: false,
+          groupIds: [],
+          roundness: defaultStyle.roundness,
+        );
+      case FreeformCanvasElementType.ellipse:
+        return FreeformCanvasEllipse(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: defaultStyle.strokeColor,
+          backgroundColor: defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle,
+          strokeWidth: defaultStyle.strokeWidth,
+          strokeStyle: defaultStyle.strokeStyle,
+          roughness: defaultStyle.roughness,
+          opacity: defaultStyle.opacity,
+          locked: false,
+          groupIds: [],
+        );
+      case FreeformCanvasElementType.line:
+        // 直线使用points表示
+        return FreeformCanvasLine(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: defaultStyle.strokeColor,
+          backgroundColor: defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle,
+          strokeWidth: defaultStyle.strokeWidth,
+          strokeStyle: defaultStyle.strokeStyle,
+          roughness: defaultStyle.roughness,
+          opacity: defaultStyle.opacity,
+          locked: false,
+          groupIds: [],
+          points: [
+            FreeformCanvasPoint(startPoint.dx-minX, startPoint.dy-minY),  // 起点（相对坐标）
+            FreeformCanvasPoint(endPoint.dx-minX, endPoint.dy-minY),  // 终点（相对坐标）
+          ],
+          polygon: false,
+          startArrowhead: null,
+          endArrowhead: null,
+          roundness: defaultStyle.roundness,
+        );
+      case FreeformCanvasElementType.arrow:
+        // 箭头与直线类似，但包含箭头头
+        return FreeformCanvasArrow(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: defaultStyle.strokeColor,
+          backgroundColor: defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle,
+          strokeWidth: defaultStyle.strokeWidth,
+          strokeStyle: defaultStyle.strokeStyle,
+          roughness: defaultStyle.roughness,
+          opacity: defaultStyle.opacity,
+          locked: false,
+          groupIds: [],
+          points: [
+            FreeformCanvasPoint(startPoint.dx-minX, startPoint.dy-minY),  // 起点（相对坐标）
+            FreeformCanvasPoint(endPoint.dx-minX, endPoint.dy-minY),  // 终点（相对坐标）
+          ],
+          polygon: false,
+          startArrowhead: defaultStyle.startArrowhead,
+          endArrowhead: defaultStyle.endArrowhead,
+          roundness: defaultStyle.roundness,
+        );
+      case FreeformCanvasElementType.diamond:
+        return FreeformCanvasDiamond(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: defaultStyle.strokeColor,
+          backgroundColor: defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle,
+          strokeWidth: defaultStyle.strokeWidth,
+          strokeStyle: defaultStyle.strokeStyle,
+          roughness: defaultStyle.roughness,
+          opacity: defaultStyle.opacity,
+          locked: false,
+          groupIds: [],
+          roundness: defaultStyle.roundness,
+        );
+      case FreeformCanvasElementType.embeddable:
+        return FreeformCanvasEmbeddable(
+          id: id,
+          index: '00',
+          x: minX,
+          y: minY,
+          width: width,
+          height: height,
+          angle: 0.0,
+          strokeColor: defaultStyle.strokeColor,
+          backgroundColor: defaultStyle.backgroundColor,
+          fillStyle: defaultStyle.fillStyle,
+          strokeWidth: defaultStyle.strokeWidth,
+          strokeStyle: defaultStyle.strokeStyle,
+          roughness: defaultStyle.roughness,
+          opacity: defaultStyle.opacity,
+          locked: false,
+          groupIds: [],
+          roundness: defaultStyle.roundness,
+        );
+      default:
+        return null;
+    }
+  }
+
+  // 私有辅助方法：检查值是否为 _unset
+  static bool _isUnset(Object? value) => value is _Unset;
+
+  // 私有辅助方法：获取值，如果为 _unset 则返回原值
+  static T _getValue<T>(Object? newValue, T oldValue) {
+    if (_isUnset(newValue)) return oldValue;
+    return newValue as T;
+  }
+
+  // 私有辅助方法：获取可为空的值，如果为 _unset 则返回原值
+  static T? _getNullableValue<T>(Object? newValue, T? oldValue) {
+    if (_isUnset(newValue)) return oldValue;
+    return newValue as T?;
+  }
+
   /// **ZH** 对元素进行缩放操作（基于控制点位移的算法）
   /// - 被拖动点根据 handleOffset 移动
   ///
@@ -1274,7 +1277,7 @@ class ElementOps {
     }
 
     final textElement = element as FreeformCanvasText;
-    final newFontSize = textElement.fontSize * uniformScale.abs();
+    final newFontSize = FontSize(textElement.fontSize.value * uniformScale.abs());
 
     return copyWith(
       element,
@@ -1415,7 +1418,7 @@ class ElementOps {
   ///**ZH** 从点列表创建freedraw元素
   ///
   ///**EN** Create a freedraw element from a list of points
-  static FreeformCanvasFreedraw createFreedraw(Iterable<Offset> points) {
+  static FreeformCanvasFreedraw createFreedraw(Iterable<Offset> points, ElementStyle defaultStyle) {
     assert(points.isNotEmpty);
     // 计算新点的相对坐标（相对于元素起点）
     final x = points.first.dx;
@@ -1453,13 +1456,13 @@ class ElementOps {
       width: width,
       height: height,
       angle: 0.0,
-      strokeColor: FreeformCanvasColor.black(),
-      backgroundColor: FreeformCanvasColor.transparent(),
+      strokeColor: defaultStyle.strokeColor,
+      backgroundColor: defaultStyle.backgroundColor,
       fillStyle: 'solid',
-      strokeWidth: 2.0,
+      strokeWidth: defaultStyle.strokeWidth,
       strokeStyle: 'solid',
       roughness: 0.0,
-      opacity: 100.0,
+      opacity: defaultStyle.opacity,
       locked: false,
       groupIds: [],
       frameId: null,
@@ -1514,6 +1517,37 @@ class ElementOps {
     ) as FreeformCanvasFreedraw;
   }
 
+  static FreeformCanvasText createText({
+    required Offset textCanvasPosition,
+    required ElementStyle defaultStyle,
+  }){
+    return FreeformCanvasText(
+      id: '',
+      index: '',
+      x: textCanvasPosition.dx,
+      y: textCanvasPosition.dy,
+      width: 200,
+      height: 1.25 * defaultStyle.fontSize.value,
+      angle: 0,
+      strokeColor: defaultStyle.strokeColor,
+      backgroundColor: FreeformCanvasColor.transparent(),
+      fillStyle: '',
+      strokeWidth: 2,
+      strokeStyle: '',
+      roughness: 1,
+      opacity: defaultStyle.opacity,
+      locked: false,
+      groupIds: [],
+      text: '',
+      fontSize: defaultStyle.fontSize,
+      fontFamily: defaultStyle.fontFamily,
+      textAlign: defaultStyle.textAlign,
+      verticalAlign: 'top',
+      lineHeight: 1.25,
+      autoResize: false
+    );
+  }
+
   static FreeformCanvasElement applyStylePatch(ElementStylePatch patch, FreeformCanvasElement element) {
     return ElementOps.copyWith(
       element,
@@ -1528,6 +1562,9 @@ class ElementOps {
       fontSize: patch.fontSize ?? _Unset(),
       fontFamily: patch.fontFamily ?? _Unset(),
       textAlign: patch.textAlign ?? _Unset(),
+      startArrowhead: patch.startArrowhead is Set ? (patch.startArrowhead as Set).value : _Unset(),
+      endArrowhead: patch.endArrowhead is Set ? (patch.endArrowhead as Set).value : _Unset(),
+      elbowed: patch.elbowed ?? _Unset(),
     );
   }
   /// **ZH** 修改与元素文本相关的字段，同时会重新计算宽高。

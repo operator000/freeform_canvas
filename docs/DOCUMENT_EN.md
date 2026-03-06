@@ -2,8 +2,10 @@
 Chapter names are as follows:
 
 - Project Introduction
+- Internationalization Support
 - `element_ops.dart` and `freeform_canvas_file_ops.dart`: The Exclusive Interfaces for Element and File Data Operations
 - freeform_canvas_element.dart: Element Definitions and Structure
+- Type Definitions and Enums
 - `EditorState`: Collection of Editor Operations
 - Rendering Solution Using CustomPaint
 - Element Geometry and Hit Testing
@@ -23,6 +25,52 @@ This project is a **Excalidraw-like Whiteboard Editor** implemented in Flutter, 
 One of the design goals is:
 
 > **Replicate many of Excalidraw's editing behaviors, support .excalidraw files, adapt to various interaction styles such as e-ink screens, desktop computers, mobile desktops, and tablets, while maintaining the system's high extensibility and customizability.**
+
+# Internationalization Support
+The project uses Flutter's official internationalization solution (flutter_localizations + intl) and supports both English and Simplified Chinese.
+
+## Usage
+
+Add the following configuration to your application's `MaterialApp`:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
+
+MaterialApp(
+  localizationsDelegates: [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: [
+    Locale('en', ''),
+    Locale('zh', ''),
+  ],
+  // locale: Locale('en', ''),  // Optional: manually specify language
+
+  home: YourHomePage(),
+);
+```
+
+## Supported Languages
+
+- **English (en)**: Default language
+- **Simplified Chinese (zh)**: Full support
+
+## Translation File Locations
+
+- English translation: `lib/l10n/app_en.arb`
+- Simplified Chinese translation: `lib/l10n/app_zh.arb`
+- Generated code: `lib/generated/l10n/`
+
+## Notes
+
+- Ensure your application has added `flutter_localizations` and `intl` dependencies
+- All widgets using internationalization must be inside MaterialApp
+- Generated internationalization code is located in the `lib/generated/l10n/` directory, which is automatically generated and should not be manually edited
 
 # `element_ops.dart` and `freeform_canvas_file_ops.dart`: The Exclusive Interfaces for Element and File Data Operations
 ## `ElementOps`: Single Element Operation Class
@@ -356,7 +404,7 @@ static FreeformCanvasElementType _parseElementType(String type);
 Map<String, dynamic> _baseToJson();
 ```
 
-## Seven Specific Element Types
+## Eight Specific Element Types
 ```dart
 /// Rectangle element
 class FreeformCanvasRectangle extends FreeformCanvasElement
@@ -370,6 +418,8 @@ class FreeformCanvasLine extends FreeformCanvasElement
 class FreeformCanvasArrow extends FreeformCanvasElement implements FreeformCanvasLine
 /// Diamond element
 class FreeformCanvasDiamond extends FreeformCanvasElement
+/// Embeddable element
+class FreeformCanvasEmbeddable extends FreeformCanvasElement
 ```
 ## Specific Element Class Member Variables and Their Meanings
 - All member variables of the above element classes are of type `final`. All element modification operations are implemented using the methods provided by `ElementOps`, including `copyWith`.
@@ -462,11 +512,11 @@ final String text;
 /// In this project, the value always equals to text.
 final String? originalText;
 
-/// Small-16 Medium-20 Large-28 Extra Large-36
-final double fontSize;
+/// Font size: Small-16 Medium-20 Large-28 Extra Large-36
+final FontSize fontSize;
 
-/// Font enumeration, 5-Excalifont; 6-Nunito; 7-Lilita One; 8-Comic Shanns
-final int fontFamily;
+/// Font enumeration: excalifont, nunito, lilitaOne, comicShanns
+final FontFamily fontFamily;
 
 /// Text alignment: left / center / right
 final String textAlign;
@@ -509,10 +559,10 @@ final dynamic startBinding;
 final dynamic endBinding;
 
 /// Start arrowhead, ignore for now
-final String? startArrowhead;
+final ArrowType? startArrowhead;
 
 /// End arrowhead, ignore for now
-final String? endArrowhead;
+final ArrowType? endArrowhead;
 ```
 #### Arrow Element
 ```dart
@@ -589,6 +639,96 @@ class TextEditData{
 }
 ```
 
+# Type Definitions and Enums
+The project defines several important types and enums to standardize element properties and behaviors. File: `lib\models\freeform_canvas_element.dart`
+
+## ArrowType: Arrow Type
+```dart
+enum ArrowType{
+  triangleOutline,  // Triangle outline
+  arrow,            // Arrow
+  triangle,         // Solid triangle
+}
+```
+
+**Usage locations**:
+- `startArrowhead` and `endArrowhead` fields of `FreeformCanvasArrow`
+- `startArrowhead` and `endArrowhead` fields of `FreeformCanvasLine`
+- `startArrowhead` and `endArrowhead` fields of `ElementStyle`
+
+**Encoding and decoding**:
+```dart
+// Decode from string
+ArrowType? value = ArrowTypeExt.decode('arrow');
+
+// Encode to string
+String encoded = ArrowType.arrow.encode(); // Returns 'arrow'
+```
+
+## FontFamily: Font Family
+```dart
+enum FontFamily{
+  excalifont,   // Excalifont font (encoded value: 5)
+  nunito,       // Nunito font (encoded value: 6)
+  lilitaOne,    // Lilita One font (encoded value: 7)
+  comicShanns,  // Comic Shanns font (encoded value: 8)
+}
+```
+
+**Usage locations**:
+- `fontFamily` field of `FreeformCanvasText`
+- `fontFamily` field of `ElementStyle`
+
+**Default font**: `FontFamily.excalifont`
+
+**Encoding and decoding**:
+```dart
+// Decode from integer
+FontFamily? value = FontFamilyExt.decode(5); // Returns FontFamily.excalifont
+
+// Get default font
+FontFamily defaultFont = FontFamilyExt.defaultFont; // Returns FontFamily.excalifont
+
+// Encode to integer
+int encoded = FontFamily.nunito.encode(); // Returns 6
+```
+
+## FontSize: Font Size
+```dart
+class FontSize{
+  final double value;  // Actual font size value
+
+  FontSize(this.value);
+
+  // Predefined font sizes
+  FontSize.small():value = 16;       // Small font
+  FontSize.medium():value = 20;      // Medium font (default)
+  FontSize.large():value = 28;       // Large font
+  FontSize.extraLarge():value = 36;  // Extra large font
+
+  FontSize.defaultSize():value = 20; // Default font size
+}
+```
+
+**Usage locations**:
+- `fontSize` field of `FreeformCanvasText`
+- `fontSize` field of `ElementStyle`
+
+**Usage examples**:
+```dart
+// Use predefined font sizes
+FontSize smallFont = FontSize.small();        // 16
+FontSize mediumFont = FontSize.medium();      // 20
+FontSize largeFont = FontSize.large();        // 28
+FontSize extraLargeFont = FontSize.extraLarge(); // 36
+
+// Use custom font size
+FontSize customFont = FontSize(24);           // 24
+
+// Get actual value
+double size = mediumFont.value; // Returns 20.0
+```
+
 # `EditorState`: Collection of Editor Operations
 ## Member Functions and Variables within `EditorState`
 ### File Management Related
@@ -656,31 +796,16 @@ void quitPreview();
 ```
 
 ### Others
-embeddable elements are allowed to use external renderers past through EditorState, with a type below：
-```dart
-/// **ZH** Embeddable 元素的外部渲染器类型
-///
-/// **EN** External renderer type for embeddable elements
-///
-/// - [canvas]: 外部提供的画布，渲染器应在此画布上绘制
-/// - [width]: 元素宽度
-/// - [height]: 元素高度
-/// - [screenPosition]: 元素在屏幕上的位置（左上角坐标）
-/// - [element]: 要渲染的 embeddable 元素
-typedef EmbeddableRenderer = void Function(
-  Canvas canvas,
-  double width,
-  double height,
-  Offset screenPosition,
-  FreeformCanvasEmbeddable element,
-);
-```
 Other variables in EditorState：
 ```dart
-  /// **ZH** Embeddable 元素的外部渲染器
+  /// **ZH** 编辑器依赖配置
   ///
-  /// **EN** External renderer for embeddable elements
-  EmbeddableRenderer? embeddableRenderer;
+  /// **EN** Editor dependencies configuration
+  ///
+  /// 用于集中管理编辑器的可注入依赖，包括：
+  /// - Embeddable 元素的渲染器
+  /// - Embeddable 链接编辑组件
+  final EditorDependencies dependencies;
   final transformState = TransformState();
   //The transformation status of the canvas, defined:
   //screen = (canvas + pan)*scale
@@ -698,6 +823,53 @@ Other variables in EditorState：
   ///
   ///**EN** Exit text editing and save the element as needed
   void quitTextEdit() => textEditorState.quitTextEdit(this);
+```
+
+**EditorDependencies Description**:
+File: `lib\core\editor_dependencies.dart`
+
+The `EditorDependencies` class is used to centrally manage injectable dependencies for the editor, including the renderer for embeddable elements and the link edit component.
+
+```dart
+class EditorDependencies {
+  /// **ZH** Embeddable 元素的外部渲染器
+  ///
+  /// **EN** External renderer for embeddable elements
+  final EmbeddableRenderer? embeddableRenderer;
+
+  /// **ZH** Embeddable 链接编辑组件构建器
+  ///
+  /// **EN** Embeddable link edit component builder
+  ///
+  /// 允许自定义整个链接编辑UI，而不仅仅是文本框和按钮
+  final EmbeddableLinkEditComponentBuilder? linkEditComponentBuilder;
+
+  const EditorDependencies({
+    this.embeddableRenderer,
+    this.linkEditComponentBuilder,
+  });
+
+  /// **ZH** 默认配置（使用内置实现）
+  ///
+  /// **EN** Default configuration (using built-in implementation)
+  static const EditorDependencies defaultDependencies = EditorDependencies();
+}
+```
+
+**Usage Example**:
+```dart
+EditorState(
+  file: file,
+  dependencies: EditorDependencies(
+    embeddableRenderer: (canvas, width, height, screenPosition, element) {
+      // Custom rendering logic for embeddable elements
+    },
+    linkEditComponentBuilder: (context) {
+      // Custom link edit UI
+      return YourCustomLinkEditWidget(context: context);
+    },
+  ),
+)
 ```
 ## `xxxState`: State Notification Classes
 - `TransformState`
@@ -1751,9 +1923,18 @@ class ElementStyle {
   double roughness = 0;
   double opacity = 100;
   FreeformCanvasRoundness? roundness;
-  double fontSize = 16;
-  int fontFamily = 5;
+
+  FontSize fontSize = FontSize.medium();
+
+  /// 字体枚举
+  FontFamily fontFamily = FontFamilyExt.defaultFont;
+
+  /// 文本对齐：left / center / right
   String textAlign = 'left';
+
+  ArrowType? startArrowhead;
+
+  ArrowType? endArrowhead = ArrowType.arrow;
 }
 
 sealed class PatchValue<T>{

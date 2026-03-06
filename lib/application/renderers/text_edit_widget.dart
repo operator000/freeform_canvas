@@ -87,7 +87,7 @@ class _TextEditWidgetState extends State<TextEditWidget> {
         controller: textEditData.textController,
         focusNode: focusNode,
         style: TextStyle(
-          fontSize: behalfElement.fontSize * widget.editorState.scale,
+          fontSize: behalfElement.fontSize.value * widget.editorState.scale,
           height: behalfElement.lineHeight,
           color: behalfElement.strokeColor.color,
         ),
@@ -99,7 +99,7 @@ class _TextEditWidgetState extends State<TextEditWidget> {
         minLines: 1,
         textAlign: TextAlign.left,
         strutStyle: StrutStyle(
-          fontSize: behalfElement.fontSize * widget.editorState.scale,
+          fontSize: behalfElement.fontSize.value * widget.editorState.scale,
           height: behalfElement.lineHeight,
           leading: 0,
         ),

@@ -2,8 +2,10 @@
 章节名称如下：
 
 - 项目介绍
+- 国际化支持
 - `element_ops.dart`和`freeform_canvas_file_ops.dart`：元素和文件数据操作的唯一接口
 - freeform_canvas_element.dart:元素定义及结构
+- 类型定义和枚举
 - `EditorState`：编辑器操作集合
 - 使用CustomPaint的绘制方案
 - 元素几何和命中测试
@@ -23,6 +25,52 @@
 设计目标之一是：
 
 > **还原诸多 Excalidraw 的编辑行为、支持.excalidraw文件，适配墨水屏、电脑桌面、手机桌面、平板等诸多交互风格，同时保持系统极高的可拓展、可定制。**
+
+# 国际化支持
+项目使用 Flutter 官方的国际化方案（flutter_localizations + intl），支持英文和简体中文双语。
+
+## 使用方法
+
+在您的应用的 `MaterialApp` 中添加以下配置：
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
+
+MaterialApp(
+  localizationsDelegates: [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: [
+    Locale('en', ''),
+    Locale('zh', ''),
+  ],
+  // locale: Locale('en', ''),  // 可选：手动指定语言
+
+  home: YourHomePage(),
+);
+```
+
+## 支持的语言
+
+- **英文 (en)**: 默认语言
+- **简体中文 (zh)**: 完整支持
+
+## 翻译文件位置
+
+- 英文翻译：`lib/l10n/app_en.arb`
+- 简体中文翻译：`lib/l10n/app_zh.arb`
+- 生成的代码：`lib/generated/l10n/`
+
+## 注意事项
+
+- 确保您的应用已添加 `flutter_localizations` 和 `intl` 依赖
+- 所有使用国际化的 Widget 必须在 MaterialApp 内部
+- 生成的国际化代码位于 `lib/generated/l10n/` 目录，该目录会被自动生成，无需手动编辑
 
 # `element_ops.dart`和`freeform_canvas_file_ops.dart`：元素和文件数据操作的唯一接口
 ## `ElementOps`：单元素操作类
@@ -356,7 +404,7 @@ static FreeformCanvasElementType _parseElementType(String type);
 Map<String, dynamic> _baseToJson();
 ```
 
-## 七种具体元素
+## 八种具体元素
 ```dart
 /// 矩形元素
 class FreeformCanvasRectangle extends FreeformCanvasElement
@@ -370,6 +418,8 @@ class FreeformCanvasLine extends FreeformCanvasElement
 class FreeformCanvasArrow extends FreeformCanvasElement implements FreeformCanvasLine
 /// 菱形元素
 class FreeformCanvasDiamond extends FreeformCanvasElement
+/// Embeddable 元素（嵌入式内容元素）
+class FreeformCanvasEmbeddable extends FreeformCanvasElement
 ```
 ## 具体元素类成员变量及含义
 - 上述所有元素类成员变量均为`final`类型，一切元素修改操作使用`ElementOps`提供的方法实现，包括`copyWith`。
@@ -462,11 +512,11 @@ final String text;
 /// In this project, the value always equals to text.
 final String? originalText;
 
-/// Small-16 Medium-20 Large-28 Extra Large-36
-final double fontSize;
+/// Font size: Small-16 Medium-20 Large-28 Extra Large-36
+final FontSize fontSize;
 
-/// Font enumeration, 5-Excalifont; 6-Nunito; 7-Lilita One; 8-Comic Shanns
-final int fontFamily;
+/// Font enumeration: excalifont, nunito, lilitaOne, comicShanns
+final FontFamily fontFamily;
 
 /// Text alignment: left / center / right
 final String textAlign;
@@ -509,10 +559,10 @@ final dynamic startBinding;
 final dynamic endBinding;
 
 /// Start arrowhead, ignore for now
-final String? startArrowhead;
+final ArrowType? startArrowhead;
 
 /// End arrowhead, ignore for now
-final String? endArrowhead;
+final ArrowType? endArrowhead;
 ```
 #### 箭头元素
 ```dart
@@ -535,11 +585,11 @@ final dynamic endBinding;
 
 /// Start arrowhead, ignore for now
 @override
-final String? startArrowhead;
+final ArrowType? startArrowhead;
 
 /// End arrowhead, ignore for now
 @override
-final String? endArrowhead;
+final ArrowType? endArrowhead;
 ```
 
 # 文本编辑相对于其它元素编辑的特殊性
@@ -578,6 +628,96 @@ class TextEditData{
   /// Used when modifing a specific element in the file.
   factory TextEditData.fromElement({required FreeformCanvasText element});
 }
+```
+
+# 类型定义和枚举
+项目中定义了几个重要的类型和枚举，用于规范元素的属性和行为。文件 `lib\models\freeform_canvas_element.dart`
+
+## ArrowType：箭头类型
+```dart
+enum ArrowType{
+  triangleOutline,  // 三角形轮廓
+  arrow,            // 箭头
+  triangle,         // 实心三角形
+}
+```
+
+**使用位置**：
+- `FreeformCanvasArrow` 的 `startArrowhead` 和 `endArrowhead` 字段
+- `FreeformCanvasLine` 的 `startArrowhead` 和 `endArrowhead` 字段
+- `ElementStyle` 的 `startArrowhead` 和 `endArrowhead` 字段
+
+**编码和解码**：
+```dart
+// 从字符串解码
+ArrowType? value = ArrowTypeExt.decode('arrow');
+
+// 编码为字符串
+String encoded = ArrowType.arrow.encode(); // 返回 'arrow'
+```
+
+## FontFamily：字体家族
+```dart
+enum FontFamily{
+  excalifont,   // Excalifont 字体（编码值：5）
+  nunito,       // Nunito 字体（编码值：6）
+  lilitaOne,    // Lilita One 字体（编码值：7）
+  comicShanns,  // Comic Shanns 字体（编码值：8）
+}
+```
+
+**使用位置**：
+- `FreeformCanvasText` 的 `fontFamily` 字段
+- `ElementStyle` 的 `fontFamily` 字段
+
+**默认字体**：`FontFamily.excalifont`
+
+**编码和解码**：
+```dart
+// 从整数解码
+FontFamily? value = FontFamilyExt.decode(5); // 返回 FontFamily.excalifont
+
+// 获取默认字体
+FontFamily defaultFont = FontFamilyExt.defaultFont; // 返回 FontFamily.excalifont
+
+// 编码为整数
+int encoded = FontFamily.nunito.encode(); // 返回 6
+```
+
+## FontSize：字体大小
+```dart
+class FontSize{
+  final double value;  // 实际的字体大小值
+
+  FontSize(this.value);
+
+  // 预定义字体大小
+  FontSize.small():value = 16;       // 小号字体
+  FontSize.medium():value = 20;      // 中号字体（默认）
+  FontSize.large():value = 28;       // 大号字体
+  FontSize.extraLarge():value = 36;  // 特大号字体
+
+  FontSize.defaultSize():value = 20; // 默认字体大小
+}
+```
+
+**使用位置**：
+- `FreeformCanvasText` 的 `fontSize` 字段
+- `ElementStyle` 的 `fontSize` 字段
+
+**使用示例**：
+```dart
+// 使用预定义字体大小
+FontSize smallFont = FontSize.small();        // 16
+FontSize mediumFont = FontSize.medium();      // 20
+FontSize largeFont = FontSize.large();        // 28
+FontSize extraLargeFont = FontSize.extraLarge(); // 36
+
+// 使用自定义字体大小
+FontSize customFont = FontSize(24);           // 24
+
+// 获取实际值
+double size = mediumFont.value; // 返回 20.0
 ```
 
 # `EditorState`：编辑器操作集合
@@ -648,31 +788,16 @@ void quitPreview();
 ```
 
 ### 其余
-embeddable元素允许使用EditorState中传入的渲染器渲染。渲染器函数类型如下：
-```dart
-/// **ZH** Embeddable 元素的外部渲染器类型
-///
-/// **EN** External renderer type for embeddable elements
-///
-/// - [canvas]: 外部提供的画布，渲染器应在此画布上绘制
-/// - [width]: 元素宽度
-/// - [height]: 元素高度
-/// - [screenPosition]: 元素在屏幕上的位置（左上角坐标）
-/// - [element]: 要渲染的 embeddable 元素
-typedef EmbeddableRenderer = void Function(
-  Canvas canvas,
-  double width,
-  double height,
-  Offset screenPosition,
-  FreeformCanvasEmbeddable element,
-);
-```
 EditorState其余字段：
 ```dart
-  /// **ZH** Embeddable 元素的外部渲染器
+  /// **ZH** 编辑器依赖配置
   ///
-  /// **EN** External renderer for embeddable elements
-  EmbeddableRenderer? embeddableRenderer;
+  /// **EN** Editor dependencies configuration
+  ///
+  /// 用于集中管理编辑器的可注入依赖，包括：
+  /// - Embeddable 元素的渲染器
+  /// - Embeddable 链接编辑组件
+  final EditorDependencies dependencies;
   final transformState = TransformState();
   //The transformation status of the canvas, defined:
   //screen = (canvas + pan)*scale
@@ -690,6 +815,53 @@ EditorState其余字段：
   ///
   ///**EN** Exit text editing and save the element as needed
   void quitTextEdit() => textEditorState.quitTextEdit(this);
+```
+
+**EditorDependencies 说明**：
+文件 `lib\core\editor_dependencies.dart`
+
+`EditorDependencies` 类用于集中管理编辑器的可注入依赖，包括 Embeddable 元素的渲染器和链接编辑组件。
+
+```dart
+class EditorDependencies {
+  /// **ZH** Embeddable 元素的外部渲染器
+  ///
+  /// **EN** External renderer for embeddable elements
+  final EmbeddableRenderer? embeddableRenderer;
+
+  /// **ZH** Embeddable 链接编辑组件构建器
+  ///
+  /// **EN** Embeddable link edit component builder
+  ///
+  /// 允许自定义整个链接编辑UI，而不仅仅是文本框和按钮
+  final EmbeddableLinkEditComponentBuilder? linkEditComponentBuilder;
+
+  const EditorDependencies({
+    this.embeddableRenderer,
+    this.linkEditComponentBuilder,
+  });
+
+  /// **ZH** 默认配置（使用内置实现）
+  ///
+  /// **EN** Default configuration (using built-in implementation)
+  static const EditorDependencies defaultDependencies = EditorDependencies();
+}
+```
+
+**使用示例**：
+```dart
+EditorState(
+  file: file,
+  dependencies: EditorDependencies(
+    embeddableRenderer: (canvas, width, height, screenPosition, element) {
+      // 自定义嵌入元素的渲染逻辑
+    },
+    linkEditComponentBuilder: (context) {
+      // 自定义链接编辑UI
+      return YourCustomLinkEditWidget(context: context);
+    },
+  ),
+)
 ```
 ## `xxxState`：状态通知类
 - `TransformState`
@@ -1769,9 +1941,18 @@ class ElementStyle {
   double roughness = 0;
   double opacity = 100;
   FreeformCanvasRoundness? roundness;
-  double fontSize = 16;
-  int fontFamily = 5;
+
+  FontSize fontSize = FontSize.medium();
+
+  /// 字体枚举
+  FontFamily fontFamily = FontFamilyExt.defaultFont;
+
+  /// 文本对齐：left / center / right
   String textAlign = 'left';
+
+  ArrowType? startArrowhead;
+
+  ArrowType? endArrowhead = ArrowType.arrow;
 }
 
 sealed class PatchValue<T>{

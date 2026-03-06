@@ -10,6 +10,7 @@ class FreeformCanvasPainter extends CustomPainter {
   int dirty;
   final List<FreeformCanvasElement> elements;
   final FreeformCanvasAppState appState;
+  @Deprecated('背景色在单独图层绘制')
   final Color? backgroundColor;
   final String? draftId;
   final EditorState editorState;
@@ -19,18 +20,19 @@ class FreeformCanvasPainter extends CustomPainter {
     required this.elements,
     required this.appState,
     required this.editorState,
+    @Deprecated('背景色在单独图层绘制')
     this.backgroundColor,
     this.draftId,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (backgroundColor != null) {
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..color = backgroundColor!,
-      );
-    }
+    // if (backgroundColor != null) {
+    //   canvas.drawRect(
+    //     Rect.fromLTWH(0, 0, size.width, size.height),
+    //     Paint()..color = backgroundColor!,
+    //   );
+    // }
 
     canvas.save();
 
@@ -40,7 +42,7 @@ class FreeformCanvasPainter extends CustomPainter {
     drawGrid(canvas: canvas, size: size, appState: appState, scale: editorState.scale,pan: editorState.pan);
     for (final element in elements) {
       if(element.id!=draftId&&element.id != editorState.textEditorState.textEditData?.behalfElement.id){
-        drawElement(canvas, element, editorState.embeddableRenderer,editorState.scale,editorState.pan);
+        drawElement(canvas, element, editorState.dependencies.embeddableRenderer,editorState.scale,editorState.pan);
       }
     }
     canvas.restore();
@@ -477,7 +479,7 @@ void _drawText(Canvas canvas, FreeformCanvasText text) {
   // 创建文本样式，与 ZeroPaddingTextfield 保持一致
   final textStyle = TextStyle(
     color: text.strokeColor.color.withAlpha(text.colorAlpha),
-    fontSize: text.fontSize,
+    fontSize: text.fontSize.value,
     height: text.lineHeight,
     // TODO: 字体映射，暂时使用默认字体
   );
@@ -537,33 +539,49 @@ void _drawFreedraw(Canvas canvas, FreeformCanvasFreedraw freedraw) {
 /// 
 /// **EN** Draw a line
 void _drawLine(Canvas canvas, FreeformCanvasLine line) {
-  if (line.points.length < 2) return;
+  __drawLine(
+    canvas,
+    strokePaint: line.strokePaint,
+    points: line.points,
+    x: line.x,
+    y: line.y,
+    strokeStyle: line.strokeStyle,
+    polygon: line.polygon,
+  );
+}
+void __drawLine(Canvas canvas, {
+  required Paint strokePaint,
+  required List<FreeformCanvasPoint> points,
+  required double x,
+  required double y,
+  required String strokeStyle,
+  required bool polygon,
+}) {
+  if (points.length < 2) return;
 
-  final strokePaint = line.strokePaint;
-
-  final startOffset = line.points.first.toAbsolute(line.x, line.y);
+  final startOffset = points.first.toAbsolute(x, y);
   Offset lastOffset = startOffset;
 
-  switch(line.strokeStyle){
+  switch(strokeStyle){
     case 'dotted':
-      for (int i = 1; i < line.points.length; i++) {
-        final point = line.points[i];
-        final offset = point.toAbsolute(line.x, line.y);
+      for (int i = 1; i < points.length; i++) {
+        final point = points[i];
+        final offset = point.toAbsolute(x, y);
         _drawDottedLine(canvas, lastOffset, offset, strokePaint);
         lastOffset = offset;
       }
     case 'dashed':
-      for (int i = 1; i < line.points.length; i++) {
-        final point = line.points[i];
-        final offset = point.toAbsolute(line.x, line.y);
+      for (int i = 1; i < points.length; i++) {
+        final point = points[i];
+        final offset = point.toAbsolute(x, y);
         _drawDashedLine(canvas, lastOffset, offset, strokePaint);
         lastOffset = offset;
       }
     case 'solid':
     default:
-      for (int i = 1; i < line.points.length; i++) {
-        final point = line.points[i];
-        final offset = point.toAbsolute(line.x, line.y);
+      for (int i = 1; i < points.length; i++) {
+        final point = points[i];
+        final offset = point.toAbsolute(x, y);
         canvas.drawLine(lastOffset,offset,strokePaint);
         lastOffset = offset;
       }
@@ -571,8 +589,8 @@ void _drawLine(Canvas canvas, FreeformCanvasLine line) {
 
 
   // 如果是闭合多边形
-  if (line.polygon && line.points.length >= 3) {
-    switch(line.strokeStyle){
+  if (polygon && points.length >= 3) {
+    switch(strokeStyle){
       case 'dotted':
         _drawDottedLine(canvas, startOffset, lastOffset, strokePaint);
       case 'dashed':
@@ -588,42 +606,178 @@ void _drawLine(Canvas canvas, FreeformCanvasLine line) {
 /// 
 /// **EN** Draw an arrow
 void _drawArrow(Canvas canvas, FreeformCanvasArrow arrow) {
-  // 先绘制直线部分
-  _drawLine(canvas, arrow);
+  if (arrow.points.length < 2) return;
 
-  // TODO: 实现箭头头部
-  // 当前阶段简单绘制一个三角形箭头
-  if (arrow.points.length >= 2 && arrow.endArrowhead == 'arrow') {
-    _drawArrowhead(canvas, arrow);
+  // 计算箭头底边位置，用于调整线条绘制
+  List<FreeformCanvasPoint> adjustedPoints = List.from(arrow.points);
+
+  // 处理起始箭头
+  double? startArrowLength;
+  if (arrow.startArrowhead != null) {
+    final tip = arrow.points.first.toAbsolute(arrow.x, arrow.y);
+    final beforeTip = arrow.points[1].toAbsolute(arrow.x, arrow.y);
+    startArrowLength = _calculateArrowLength(tip, beforeTip, arrow.strokeWidth);
+
+    // 计算箭头底边位置
+    final direction = (tip - beforeTip).normalized();
+    final basePoint = tip - direction * startArrowLength;
+    if(arrow.startArrowhead == ArrowHeadType.triangleOutline){
+      adjustedPoints[0] = FreeformCanvasPoint(
+        basePoint.dx - arrow.x,
+        basePoint.dy - arrow.y,
+      );
+    }
+  }
+
+  // 处理结束箭头
+  double? endArrowLength;
+  if (arrow.endArrowhead != null) {
+    final tip = arrow.points.last.toAbsolute(arrow.x, arrow.y);
+    final beforeTip = arrow.points[arrow.points.length - 2].toAbsolute(arrow.x, arrow.y);
+    endArrowLength = _calculateArrowLength(tip, beforeTip, arrow.strokeWidth);
+
+    // 计算箭头底边位置
+    final direction = (tip - beforeTip).normalized();
+    final basePoint = tip - direction * endArrowLength;
+    if(arrow.endArrowhead == ArrowHeadType.triangleOutline){
+      adjustedPoints[adjustedPoints.length - 1] = FreeformCanvasPoint(
+        basePoint.dx - arrow.x,
+        basePoint.dy - arrow.y,
+      );
+    }
+  }
+
+  // 绘制调整后的直线部分
+  __drawLine(
+    canvas,
+    strokePaint: arrow.strokePaint,
+    points: adjustedPoints,
+    x: arrow.x,
+    y: arrow.y,
+    strokeStyle: arrow.strokeStyle,
+    polygon: arrow.polygon,
+  );
+
+  // 绘制起始箭头
+  if (arrow.startArrowhead != null && startArrowLength != null) {
+    _drawArrowhead(
+      canvas,
+      arrow,
+      arrow.startArrowhead!,
+      startArrowLength,
+      isStart: true,
+    );
+  }
+
+  // 绘制结束箭头
+  if (arrow.endArrowhead != null && endArrowLength != null) {
+    _drawArrowhead(
+      canvas,
+      arrow,
+      arrow.endArrowhead!,
+      endArrowLength,
+      isStart: false,
+    );
   }
 }
 
-/// **ZH** 绘制箭头头部（简单实现）
-/// 
-/// **EN** Draw an arrowhead(simple implementation)
-void _drawArrowhead(Canvas canvas, FreeformCanvasArrow arrow) {
+/// **ZH** 计算箭头长度
+///
+/// **EN** Calculate arrow length
+double _calculateArrowLength(Offset tip, Offset beforeTip, double strokeWidth) {
+  // 基础箭头长度（原来的两倍）
+  final baseLength = (10.0 + strokeWidth * 0.5) * 2.0;
+
+  // 计算线段长度
+  final segmentLength = (tip - beforeTip).distance;
+
+  // 箭头长度不超过线段长度的40%
+  final maxLength = segmentLength * 0.4;
+
+  return baseLength < maxLength ? baseLength : maxLength;
+}
+
+/// **ZH** 绘制箭头头部
+///
+/// **EN** Draw an arrowhead
+void _drawArrowhead(
+  Canvas canvas,
+  FreeformCanvasArrow arrow,
+  ArrowHeadType arrowType,
+  double arrowLength,
+  {required bool isStart}
+) {
   if (arrow.points.length < 2) return;
 
-  final lastPoint = arrow.points.last;
-  final secondLastPoint = arrow.points.length >= 2
-      ? arrow.points[arrow.points.length - 2]
-      : arrow.points.first;
+  // 根据是起始还是结束箭头，选择对应的点
+  final Offset tip;
+  final Offset beforeTip;
 
-  final tip = lastPoint.toAbsolute(arrow.x, arrow.y);
-  final beforeTip = secondLastPoint.toAbsolute(arrow.x, arrow.y);
+  if (isStart) {
+    // 起始箭头：第一个点是箭头尖端
+    tip = arrow.points.first.toAbsolute(arrow.x, arrow.y);
+    beforeTip = arrow.points[1].toAbsolute(arrow.x, arrow.y);
+  } else {
+    // 结束箭头：最后一个点是箭头尖端
+    tip = arrow.points.last.toAbsolute(arrow.x, arrow.y);
+    beforeTip = arrow.points[arrow.points.length - 2].toAbsolute(arrow.x, arrow.y);
+  }
 
   // 计算箭头方向
   final direction = (tip - beforeTip).normalized();
 
-  // 箭头大小
-  const arrowSize = 10.0;
+  // 根据箭头类型绘制不同样式
+  switch (arrowType) {
+    case ArrowHeadType.triangle:
+      _drawTriangleArrowhead(canvas, arrow, tip, direction, arrowLength);
+      break;
+    case ArrowHeadType.triangleOutline:
+      _drawTriangleOutlineArrowhead(canvas, arrow, tip, direction, arrowLength);
+      break;
+    case ArrowHeadType.arrow:
+      _drawVArrowhead(canvas, arrow, tip, direction, arrowLength);
+      break;
+  }
+}
 
-  // 计算箭头两侧点
+/// **ZH** 绘制实心三角形箭头
+///
+/// **EN** Draw a filled triangle arrowhead
+void _drawTriangleArrowhead(
+  Canvas canvas,
+  FreeformCanvasArrow arrow,
+  Offset tip,
+  Offset direction,
+  double arrowSize,
+) {
   final perpendicular = Offset(-direction.dy, direction.dx);
   final left = tip - direction * arrowSize + perpendicular * arrowSize / 2;
   final right = tip - direction * arrowSize - perpendicular * arrowSize / 2;
 
-  // 绘制箭头三角形
+  final path = Path()
+    ..moveTo(tip.dx, tip.dy)
+    ..lineTo(left.dx, left.dy)
+    ..lineTo(right.dx, right.dy)
+    ..close();
+
+  canvas.drawPath(path, arrow.fillPaint);
+  canvas.drawPath(path, arrow.strokePaint);
+}
+
+/// **ZH** 绘制三角形轮廓箭头
+///
+/// **EN** Draw a triangle outline arrowhead
+void _drawTriangleOutlineArrowhead(
+  Canvas canvas,
+  FreeformCanvasArrow arrow,
+  Offset tip,
+  Offset direction,
+  double arrowSize,
+) {
+  final perpendicular = Offset(-direction.dy, direction.dx);
+  final left = tip - direction * arrowSize + perpendicular * arrowSize / 2;
+  final right = tip - direction * arrowSize - perpendicular * arrowSize / 2;
+
   final path = Path()
     ..moveTo(tip.dx, tip.dy)
     ..lineTo(left.dx, left.dy)
@@ -631,7 +785,28 @@ void _drawArrowhead(Canvas canvas, FreeformCanvasArrow arrow) {
     ..close();
 
   canvas.drawPath(path, arrow.strokePaint);
-  canvas.drawPath(path, arrow.fillPaint);
+}
+
+/// **ZH** 绘制V形箭头
+///
+/// **EN** Draw a V-shaped arrowhead
+void _drawVArrowhead(
+  Canvas canvas,
+  FreeformCanvasArrow arrow,
+  Offset tip,
+  Offset direction,
+  double arrowSize,
+) {
+  final perpendicular = Offset(-direction.dy, direction.dx);
+  final left = tip - direction * arrowSize + perpendicular * arrowSize / 2;
+  final right = tip - direction * arrowSize - perpendicular * arrowSize / 2;
+
+  final path = Path()
+    ..moveTo(left.dx, left.dy)
+    ..lineTo(tip.dx, tip.dy)
+    ..lineTo(right.dx, right.dy);
+
+  canvas.drawPath(path, arrow.strokePaint);
 }
 
 /// **ZH** 绘制虚线矩形边框

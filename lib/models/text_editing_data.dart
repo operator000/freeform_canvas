@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:freeform_canvas/models/element_style.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
+import 'package:freeform_canvas/ops/element_ops.dart';
 
 ///**ZH** 文本编辑数据
 ///
@@ -22,36 +24,13 @@ class TextEditData{
 
   factory TextEditData.newText({
     required Offset textCanvasPosition,
-    required Color? textColor,
-    double fontSize = 36,
-    double lineHeight = 1.25,
+    required ElementStyle defaultStyle,
   }){
     return TextEditData(
       textController: TextEditingController(),
-      behalfElement: FreeformCanvasText(
-        id: '', 
-        index: '', 
-        x: textCanvasPosition.dx, 
-        y: textCanvasPosition.dy, 
-        width: 200, 
-        height: lineHeight*fontSize, 
-        angle: 0, 
-        strokeColor: textColor == null ? FreeformCanvasColor.black() : FreeformCanvasColor.fromColor(textColor), 
-        backgroundColor: FreeformCanvasColor.transparent(), 
-        fillStyle: '', 
-        strokeWidth: 2, 
-        strokeStyle: '', 
-        roughness: 1, 
-        opacity: 100, 
-        locked: false, 
-        groupIds: [], 
-        text: '', 
-        fontSize: fontSize, 
-        fontFamily: 5, 
-        textAlign: 'left', 
-        verticalAlign: 'top', 
-        lineHeight: lineHeight, 
-        autoResize: false
+      behalfElement: ElementOps.createText(
+        textCanvasPosition: textCanvasPosition,
+        defaultStyle: defaultStyle,
       ),
       isVirtual: true,
     );

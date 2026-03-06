@@ -42,7 +42,33 @@ flutter:
         - asset: packages/freeform_canvas/fonts/freeform_canvas_icons.ttf
 ```
 
-本项目提供“两个”编辑器：
+### 在应用中配置国际化
+
+在您的应用的 `MaterialApp` 中添加以下配置：
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
+
+MaterialApp(
+  localizationsDelegates: [
+    AppLocalizations.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: [
+    Locale('en', ''),
+    Locale('zh', ''),
+  ],
+  // locale: Locale('en', ''),
+
+  home: YourHomePage(),
+);
+```
+
+本项目提供"两个"编辑器：
 - 一个专为电脑桌面、键鼠交互设计
 - 一个专为墨水屏、触控笔交互设计
 
@@ -62,7 +88,7 @@ EInkFreeformCanvas(
     },
 )
 ```
-之所以称之为“两个”，是因为编辑器架构是插件式的，上述两个编辑器核心相同，但交互逻辑和渲染逻辑完全不同。
+之所以称之为"两个"，是因为编辑器架构是插件式的，上述两个编辑器核心相同，但交互逻辑和渲染逻辑完全不同。
 
 在`example\lib\main.dart`还有一个完整的flutter app，内嵌一个示例.excalidraw文件，可以直接在Windows上运行并体验编辑器效果。
 
@@ -100,7 +126,7 @@ Future<ui.Image> renderFile({
 
 非常欢迎任何形式的贡献，包括但不限于：功能补充、Bug 修复、结构重构、性能优化以及文档改进。
 
-如果你 fork 了本项目并实现了新的功能（例如新的交互方式、平台适配或编辑能力），也非常欢迎你考虑通过 Pull Request 的方式将这些改进贡献回来。  
+如果你 fork 了本项目并实现了新的功能（例如新的交互方式、平台适配或编辑能力），也非常欢迎你考虑通过 Pull Request 的方式将这些改进贡献回来。
 即使是阶段性、实验性的实现，也同样值得交流和讨论。
 
 我相信这个项目可以通过开放的讨论和协作变得更好，欢迎随时提出 issue、讨论或 PR。

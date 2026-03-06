@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
 
 ///通用工具选项按钮
@@ -215,7 +216,7 @@ class _ColorPickerState extends State<ColorPicker> {
             height: 20,
             color: Colors.grey,
           ),
-          IconButton(onPressed: (){}, icon: Text('取色'))
+          IconButton(onPressed: (){}, icon: Text(AppLocalizations.of(context)!.pickColor))
         ],
       ),
     );

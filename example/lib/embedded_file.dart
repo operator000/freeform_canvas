@@ -2243,7 +2243,7 @@ const String EMBEDDED = '''{
     "gridSize": 20,
     "gridStep": 5,
     "gridModeEnabled": true,
-    "viewBackgroundColor": "#ffffff",
+    "viewBackgroundColor": "#fffce8",
     "lockedMultiSelections": {}
   },
   "files": {}

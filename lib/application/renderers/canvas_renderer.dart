@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:freeform_canvas/application/fundamental.dart';
+import 'package:freeform_canvas/application/renderers/background_renderer.dart';
 import 'package:freeform_canvas/core/editor_state.dart';
 import 'package:freeform_canvas/painters/active_layer_painter.dart';
 import 'package:freeform_canvas/painters/static_layer_painter.dart';
@@ -12,6 +13,7 @@ class CanvasRenderer extends Renderer{
   @override
   List<Widget> buildcanvas(BuildContext context,EditorState editorState){
     return [
+      BackgroundRenderer(editorState: editorState),
       StaticLayerRendererWidget(editorState: editorState),
       ActiveLayerRendererWidget(editorState: editorState),
     ];

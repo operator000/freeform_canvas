@@ -28,14 +28,20 @@ class ElementStyle {
   /// 仅对矩形、直线、菱形有效
   FreeformCanvasRoundness? roundness;
 
-  /// 字号
-  double fontSize = 16;
+  FontSize fontSize = FontSize.medium();
 
   /// 字体枚举
-  int fontFamily = 5;
+  FontFamily fontFamily = FontFamilyExt.defaultFont;
 
   /// 文本对齐：left / center / right
   String textAlign = 'left';
+
+  ArrowHeadType? startArrowhead;
+
+  ArrowHeadType? endArrowhead = ArrowHeadType.arrow;
+
+  /// 箭头是否为肘形（仅对箭头元素有效）
+  bool elbowed = false;
 }
 
 sealed class PatchValue<T>{
@@ -58,9 +64,12 @@ class ElementStylePatch {
   final double? roughness;
   final double? opacity;
   final PatchValue<FreeformCanvasRoundness> roundness;
-  final double? fontSize;
-  final int? fontFamily;
+  final FontSize? fontSize;
+  final FontFamily? fontFamily;
   final String? textAlign;
+  final PatchValue<ArrowHeadType> startArrowhead;
+  final PatchValue<ArrowHeadType> endArrowhead;
+  final bool? elbowed;
 
   const ElementStylePatch({
     this.strokeColor,
@@ -74,6 +83,9 @@ class ElementStylePatch {
     this.fontSize,
     this.fontFamily,
     this.textAlign,
+    this.startArrowhead = const Unset<ArrowHeadType>(),
+    this.endArrowhead = const Unset<ArrowHeadType>(),
+    this.elbowed,
   });
 
   bool get isEmpty =>
@@ -87,7 +99,10 @@ class ElementStylePatch {
       roundness is Unset &&
       fontSize == null &&
       fontFamily == null &&
-      textAlign == null;
+      textAlign == null &&
+      startArrowhead is Unset &&
+      endArrowhead is Unset &&
+      elbowed == null;
 }
 ///补充将Patch应用到ElementStyle以及将ElementStyle应用到元素的方法
 extension ElementStyleApply on ElementStyle{
@@ -103,5 +118,8 @@ extension ElementStyleApply on ElementStyle{
     fontSize = patch.fontSize ?? fontSize;
     fontFamily = patch.fontFamily ?? fontFamily;
     textAlign = patch.textAlign ?? textAlign;
+    startArrowhead = patch.startArrowhead is Set<ArrowHeadType> ? (patch.startArrowhead as Set).value : startArrowhead;
+    endArrowhead = patch.endArrowhead is Set<ArrowHeadType> ? (patch.endArrowhead as Set).value : endArrowhead;
+    elbowed = patch.elbowed ?? elbowed;
   }
 }

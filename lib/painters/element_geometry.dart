@@ -108,15 +108,15 @@ class ElementGeometry {
   ///**EN** Calculate the width and height of text based on related fields, return (width, height)
   static (double, double) layoutText({
     required String text,
-    required double fontSize,
-    required int fontFamily,
+    required FontSize fontSize,
+    required FontFamily fontFamily,
     required String textAlign,
     required String verticalAlign,
     required double lineHeight,
   }){
     final textStyle = TextStyle(
       color: const Color(0xff000000),
-      fontSize: fontSize,
+      fontSize: fontSize.value,
       height: lineHeight,
     );
     final textPainter = TextPainter(

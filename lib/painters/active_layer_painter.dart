@@ -106,7 +106,7 @@ void drawDraftElement(Canvas canvas, FreeformCanvasElement element,int alpha,Edi
   );
   canvas.saveLayer(null, alphaPaint);
 
-  drawElement(canvas, element, editorState.embeddableRenderer, editorState.scale, editorState.pan);
+  drawElement(canvas, element, editorState.dependencies.embeddableRenderer, editorState.scale, editorState.pan);
 
   canvas.restore();
 }

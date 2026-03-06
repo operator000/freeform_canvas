@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freeform_canvas/inspector/fundamental.dart';
 import 'package:freeform_canvas/models/freeform_canvas_element.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
 
 //多选栏
 //MultiSelect bar
@@ -398,14 +399,14 @@ class ColorSelectSecondary extends StatelessWidget{
           direction: Axis.vertical,
           crossAxisAlignment: WrapCrossAlignment.start,
           children: [
-            Text('颜色'),
+            Text(AppLocalizations.of(context)!.color),
             _buildColorMatrix(context,matchingBrightness),//矩阵颜色选择组件
             SizedBox(height: 5,),
-            Text('色调明暗'),
+            Text(AppLocalizations.of(context)!.brightness),
             Builder(builder: (context){//亮度选择组件
               final colorset = contains(selectedColor.color);
               if(colorset==null||colorset.colors.length==1){
-                return Text('此色调没有可用的明暗变化');
+                return Text(AppLocalizations.of(context)!.noBrightnessVariations);
               }else{
                 return ColorSelectTertiary(
                   colorset: colorset,
@@ -418,7 +419,7 @@ class ColorSelectSecondary extends StatelessWidget{
               }
             }),
             SizedBox(height: 10,),
-            Text('十六进制值'),
+            Text(AppLocalizations.of(context)!.hexValue),
             ColorPicker(
               color: selectedColor,
               onSelect: onSelect,

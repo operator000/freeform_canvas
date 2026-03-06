@@ -6,6 +6,7 @@ import 'package:freeform_canvas/inspector/inspector.dart';
 import 'package:freeform_canvas/models/freeform_canvas_file.dart';
 import '../freeform_canvas_parser.dart';
 import '../core/editor_state.dart';
+import 'package:freeform_canvas/generated/l10n/app_localizations.dart';
 
 
 /// **ZH** FreeformCanvas 查看器组件
@@ -161,14 +162,14 @@ class _FreeformCanvasViewerState extends State<FreeformCanvasViewer> {
           const Icon(Icons.error, color: Colors.red, size: 48),
           const SizedBox(height: 16),
           Text(
-            'Load .excalidraw failed',
+            AppLocalizations.of(context)!.loadFailed,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.red,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            _error ?? 'Unknown error',
+            _error ?? AppLocalizations.of(context)!.unknownError,
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
